@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>给宝宝的小情书</title>
+
   <style>
     :root { color-scheme: dark; }
 
@@ -31,13 +32,13 @@
       z-index:1;
     }
 
-    /* 普遍手机：更小的弹窗与字体 */
+    /* 普遍手机（360~430px CSS宽）：更小弹窗+更小字 */
     :root{
-      --popup-w: clamp(118px, 32vw, 170px);
-      --popup-h: clamp(74px, 10.5vh, 110px);
-      --bar-h: 28px;
+      --popup-w: clamp(104px, 28vw, 150px);
+      --popup-h: clamp(66px, 9.2vh, 98px);
+      --bar-h: 26px;
       --radius: 12px;
-      --font: clamp(10.5px, 1.25vh, 12px);
+      --font: clamp(10px, 1.12vh, 11.5px);
     }
 
     @media (min-width: 900px){
@@ -55,8 +56,8 @@
       width:var(--popup-w);
       height:var(--popup-h);
       border-radius:var(--radius);
-      background:rgba(18,20,28,.92);
-      border:2px solid rgba(255,255,255,.18);
+      background:rgba(18,20,28,.84);
+      border:2px solid rgba(255,255,255,.16);
       box-shadow:0 18px 55px rgba(0,0,0,.45);
       overflow:hidden;
       transform: translate(-50%, -50%);
@@ -67,7 +68,7 @@
     .popup.dragging{ will-change:left, top, transform; }
 
     .popup.focused{
-      outline:2px solid rgba(255,255,255,.18);
+      outline:2px solid rgba(255,255,255,.16);
       box-shadow:0 22px 70px rgba(0,0,0,.55);
     }
 
@@ -115,7 +116,7 @@
 
     .popIn{ animation: popIn .52s cubic-bezier(.2,.9,.2,1) both; }
     @keyframes popIn{
-      from{ opacity:0; transform:translate(-50%,-50%) scale(.75); }
+      from{ opacity:0; transform:translate(-50%,-50%) scale(.78); }
       to{ opacity:1; transform:translate(-50%,-50%) scale(1); }
     }
 
@@ -165,14 +166,24 @@
 
     const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
 
-    // 越大越慢：手机默认更快一点
-    const defaultSpeed = isMobile ? 55 : 80;
+    // 总数 200；轮廓阶段用更少的数量，才能“稀疏空灵”
+    const totalPopups = Math.max(10, Number(params.get('total') || 200));
+    const heartPopups = Math.min(
+      totalPopups,
+      Math.max(10, Number(params.get('heart') || (isMobile ? 72 : 160)))
+    );
+
+    // 越大越慢；手机默认更快一点（避免成型等待太久）
+    const defaultSpeed = isMobile ? 45 : 80;
     const appearIntervalMs = Math.max(10, Number(params.get('speed') || defaultSpeed));
 
-    // 需求：先形成爱心，再散落（手机默认开启散落）
+    // 先形成爱心，再散落（默认开启）
     const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
-    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 1200 : 1200)));
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 1100 : 1200)));
     const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 900 : 1000)));
+
+    // 散落后补齐到 totalPopups 的出现节奏
+    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 12 : 8)));
 
     const words = [
       `好好吃饭，${nickname}，我会心疼。`,
@@ -187,49 +198,21 @@
       `你不说我也懂，但我还是想你说。`,
       `你今天有没有想我？我有。`,
       `我在等你忙完。`,
-      `我把想你偷偷攒着，见面一次给你。`,
-      `我喜欢你认真生活的样子，也喜欢你依赖我的样子。`,
       `你一笑，我就什么都原谅了。`,
       `不开心就冲我撒娇，我接住。`,
-      `你是不是又没好好吃饭？`,
       `喝水了吗？我监督你。`,
       `别皱眉，来，给你一个抱抱。`,
-      `我想把你藏进我的口袋里。`,
       `你出现以后，我的心就开始偏心了。`,
       `我想成为你最安心的那个人。`,
-      `我不在你身边的时候，你也要照顾好自己。`,
-      `我有点想黏着你。`,
-      `你别太可爱，我会忍不住更喜欢你。`,
-      `你累了就靠我一下。`,
-      `你不许难过太久，我会心疼。`,
-      `你是我的偏爱，也是我的例外。`,
-      `不管你今天怎样，我都喜欢你。`,
       `你别怕，我一直都在。`,
-      `别熬夜啦，我想要你健健康康。`,
       `看到你名字，我就会忍不住笑。`,
       `如果想我了就直说，我会更开心。`,
-      `你快点忙完，我要占用你。`,
       `我想你想得有点过分。`,
-      `我承认，我对你有点上头。`,
-      `我好像越来越离不开你了。`,
-      `你一句话就能哄好我。`,
-      `你不理我，我就更想你了。`,
       `你别总是自己扛，我想参与。`,
-      `你需要的时候，第一时间想起我好不好。`,
-      `如果你愿意，我想一直对你好。`,
-      `我想见你，立刻，现在。`,
-      `你别太晚回家，我会担心。`,
       `到家跟我说一声，乖。`,
       `我对你，心软得一塌糊涂。`,
-      `我想牵你的手，慢慢走。`,
       `你靠近一点，我就投降。`,
       `别想太多，来想我。`,
-      `你可以依赖我一点点，再多一点点也行。`,
-      `你是不是在偷笑？我也。`,
-      `想亲你一下（就一下）。`,
-      `你是我最想分享日常的人。`,
-      `我想你了，想得很认真。`,
-      `别委屈自己，我会站在你这边。`,
       `你要记得：你有人惦记。`,
       `晚安，${nickname}，梦里也要想我。`,
     ];
@@ -438,35 +421,37 @@
       const { w: popupW, h: popupH } = measurePopupSize();
       const margin = 10;
 
-      // 手机做“稍微厚一点”的心（2圈），但总数量控制住，不糊
+      // 预留底部按钮高度，避免挡住心形
+      const bottomReserve = isMobile ? 96 : 0;
+
+      // 手机：2 圈更饱满，但圈上点数少 => 更稀疏更空灵
       const rings = isMobile ? 2 : 3;
-      const ringSpread = isMobile ? 0.09 : 0.06;
+      const ringSpread = isMobile ? 0.10 : 0.06;
       const maxRingOffset = ((rings - 1) / 2) * ringSpread;
 
       const stats = getHeartStats(720);
 
-      // 预留底部按钮空间，避免挡住心形
-      const bottomReserve = isMobile ? 96 : 0;
-
       const usableW = Math.max(50, W - 2 * margin - popupW);
       const usableH = Math.max(50, (H - bottomReserve) - 2 * margin - popupH);
 
+      // 关键：把弹窗尺寸算进去，保证心形“放得下”
       const scaleFit =
         0.98 *
         Math.min(usableW / stats.width, usableH / stats.height) /
         (1 + maxRingOffset);
 
-      // 间距更大：心形更“清晰”
-      const baseSpacing = isMobile ? Math.max(popupW * 1.10, 34) : Math.max(popupW * 0.45, 22);
+      // 更稀疏：间距更大（越大越空灵）
+      const baseSpacing = isMobile ? Math.max(popupW * 1.30, 42) : Math.max(popupW * 0.55, 26);
       const scaledPerimeter = stats.perimeter * scaleFit;
 
-      const perRing = Math.floor(
-        clamp(
-          scaledPerimeter / baseSpacing,
-          isMobile ? 16 : 40,
-          isMobile ? 26 : 110
-        )
+      // “物理上最多能放多少而不糊”
+      const maxPerRingBySpacing = Math.floor(
+        clamp(scaledPerimeter / baseSpacing, isMobile ? 12 : 35, isMobile ? 28 : 110)
       );
+
+      // 把 heartPopups 平均分配到 rings
+      const perRingTarget = Math.ceil(heartPopups / rings);
+      const perRing = Math.floor(clamp(perRingTarget, isMobile ? 12 : 35, maxPerRingBySpacing));
 
       const pool = shuffle([...words]);
       let textIndex = 0;
@@ -477,6 +462,7 @@
       const centerX = W / 2;
       const centerY = ((H - bottomReserve) / 2) + (isMobile ? 4 : 10);
 
+      // 轮廓阶段：只创建 heartPopups 左右数量（稀疏好看）
       for (let r = 0; r < rings; r++) {
         const ringOffset = (r - (rings - 1) / 2) * ringSpread;
         const scale = scaleFit * (1 + ringOffset);
@@ -503,10 +489,24 @@
 
       const lastDelay = Math.max(0, (order - 1) * appearIntervalMs);
 
-      // 先成型，再停留 scatterDelayMs，然后散落
+      // 成型后散落 + 补齐到 totalPopups(默认200)
       if (scatterEnabled) {
         schedule(token, () => {
           scatterPopups(token, created, scatterDurationMs);
+
+          const need = Math.max(0, totalPopups - created.length);
+
+          const halfW = popupW / 2;
+          const halfH = popupH / 2;
+
+          for (let k = 0; k < need; k++) {
+            schedule(token, () => {
+              const x = rand(halfW + margin, innerWidth - halfW - margin);
+              const y = rand(halfH + margin, innerHeight - halfH - margin);
+              const text = pool[textIndex++ % pool.length];
+              makePopup({ cx: x, cy: y, text, z: 10 + order++ });
+            }, k * extraSpawnGapMs);
+          }
         }, lastDelay + scatterDelayMs);
       }
     }
