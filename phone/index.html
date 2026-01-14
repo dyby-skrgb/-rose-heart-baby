@@ -33,8 +33,8 @@
     }
 
     :root{
-      --popup-w: clamp(104px, 28vw, 150px);
-      --popup-h: clamp(66px, 9.2vh, 98px);
+      --popup-w: clamp(108px, 28vw, 152px);
+      --popup-h: clamp(70px, 9.4vh, 100px);
       --bar-h: 26px;
       --radius: 12px;
       --font: clamp(10px, 1.12vh, 11.5px);
@@ -55,13 +55,18 @@
       width:var(--popup-w);
       height:var(--popup-h);
       border-radius:var(--radius);
-      background:rgba(18,20,28,.66);
+      background:rgba(18,20,28,.62);
       border:2px solid rgba(255,255,255,.18);
       box-shadow:0 18px 55px rgba(0,0,0,.45);
       overflow:hidden;
       transform: translate(-50%, -50%);
       touch-action: manipulation;
       user-select:none;
+    }
+
+    .popup.minimized{
+      height: var(--bar-h);
+      background: rgba(18,20,28,.78);
     }
 
     .popup.dragging{ will-change:left, top, transform; }
@@ -75,7 +80,7 @@
       height:var(--bar-h);
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      gap:8px;
       padding:0 8px 0 10px;
       background:rgba(255,255,255,.06);
       border-bottom:1px solid rgba(255,255,255,.10);
@@ -85,7 +90,17 @@
       touch-action:none;
       user-select:none;
     }
+    .popup.minimized .bar{ cursor:pointer; }
     .bar:active{ cursor:grabbing; }
+
+    .hint{
+      margin-left:auto;
+      font-size:11px;
+      opacity:.72;
+      display:none;
+      white-space:nowrap;
+    }
+    .popup.minimized .hint{ display:block; }
 
     .close{
       width:24px;
@@ -112,10 +127,11 @@
       color:rgba(255,255,255,.95);
       user-select:text;
     }
+    .popup.minimized .content{ display:none; }
 
-    .popIn{ animation: popIn .48s cubic-bezier(.2,.9,.2,1) both; }
+    .popIn{ animation: popIn .62s cubic-bezier(.2,.9,.2,1) both; }
     @keyframes popIn{
-      from{ opacity:0; transform:translate(-50%,-50%) scale(.80); }
+      from{ opacity:0; transform:translate(-50%,-50%) scale(.82); }
       to{ opacity:1; transform:translate(-50%,-50%) scale(1); }
     }
 
@@ -159,31 +175,31 @@
 
   <script>
     const layer = document.getElementById('layer');
-
     const params = new URLSearchParams(location.search);
-    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
 
+    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
     const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
 
     const totalPopups = Math.max(10, Number(params.get('total') || 200));
 
-    // 轮廓阶段：越少越“空灵”，越像“线条”
+    // 轮廓阶段：越少越“线条感”，越清晰
     const heartPopups = Math.min(
       totalPopups,
-      Math.max(10, Number(params.get('heart') || (isMobile ? 60 : 180)))
+      Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 170)))
     );
 
-    // 越大越慢
-    const defaultSpeed = isMobile ? 16 : 70;
-    const appearIntervalMs = Math.max(8, Number(params.get('speed') || defaultSpeed));
+    // 越大越慢（你要慢一点：默认给到手机 70ms）
+    const defaultSpeed = isMobile ? 70 : 115;
+    const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
 
-    // 散落
+    // 散落与“散落后收起”
     const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
-    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 2200 : 1200)));
+    const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 2600 : 1500)));
     const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 900 : 1000)));
-    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 10 : 8)));
+    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 14 : 10)));
 
-    // 如果你的页面顶部有固定栏挡住心形，可用 ?top=120 往下挪
+    // 顶部/底部预留（有固定栏就用 ?top=120）
     const topReserve = Math.max(0, Number(params.get('top') || 0));
     const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
 
@@ -255,7 +271,7 @@
 
     // 弧长查表：用于“等距”取点，轮廓更稳更像
     let cachedLUT = null;
-    function getHeartLUT(samples = 2600) {
+    function getHeartLUT(samples = 2800) {
       if (cachedLUT && cachedLUT.samples === samples) return cachedLUT;
 
       const points = new Array(samples + 1);
@@ -331,6 +347,7 @@
 
     let buildToken = 0;
     let timers = [];
+    let scatteredOnce = false;
 
     let topZ = 1000;
     function bringToFront(el) {
@@ -352,6 +369,469 @@
       for (const id of timers) clearTimeout(id);
       timers = [];
       layer.replaceChildren();
+      scatteredOnce = false;
+    }
+
+    function setMinimized(el, on) {
+      el.classList.toggle('minimized', !!on);
+    }
+
+    function scatterPopups(token, popups, durationMs) {
+      const margin = 10;
+
+      for (const el of popups) {
+        if (!el || !el.isConnected) continue;
+
+        const rect = el.getBoundingClient<div class="think-block"><div class="think-header" onclick="toggleThink('think-1768395999336-9u4xpvy5b')"><span class="think-icon expanded">▶</span>思考过程</div><div class="think-content expanded" id="think-1768395999336-9u4xpvy5b">**Refining popup generation**
+
+I need to respond to a request for clearer popups that appear slower after scattering, along with a requirement for 200 unique popups without repeating messages. The current code limits the words, causing repetitions due to a pool shuffle. To solve this, I can create unique strings using combinations from templates and random adjectives. I'll generate 200 unique messages and ensure that popups remain minimized and can be opened on click, avoiding duplicates. I'm set to use `generateUniqueMessages(total, nickname)`.**Optimizing popup appearance**
+
+I'll precompute a message list for `totalPopups`, starting with heartPopups for the outline and making the rest unique for scattering. To make them appear slower, I think I could set the default `appearInterval` to 90ms for mobile and 60ms for desktop, but maybe 80ms for mobile for a slower effect. I’ll keep the heart-like design with clear outlines, adjusting the bottom narrow coefficient for sharpness. I need to ensure that after scattering, all popups are minimized but clickable. This should create a better user experience!**Adjusting popup interactions**
+
+I’m considering how to implement the "点开看" feature, which should toggle the minimize option. Currently, when a popup is minimized, clicking the bar expands it, but it can't be minimized again without dragging. So, I think a double-click or a button might help. For simplicity, if not dragging and `scatteredOnce` is true, clicking will toggle minimize, but I’ll have to be careful not to complicate the dragging feature. 
+
+Alternatively, after scattering, keeping the popups minimized and allowing a click to expand might work better. I also need to generate 200 unique messages, potentially using templates with unique combinations while considering how index formatting affects appearance.**Generating unique popups**
+
+I’m planning to use eight arrays, such as subjects, verbs, objects, and qualifiers, to create unique message permutations. To achieve at least 200 combinations, I’m considering starting with phrases like "我想你了" and various connectors. Ensuring uniqueness might be tricky since I can’t rely on numbered suffixes due to visibility issues. Additionally, I can't use different punctuation or emojis, but I’m thinking of using subtle suffixes while avoiding exact duplicates.
+
+Creating unique sentences through combinations from various lengths could offer more freedom, as I would generate around 2,500 combos and then select 200 unique ones without numbering. I’ll also incorporate the user's nickname into some templates to create a more personal touch. We'll have to use a set to ensure no duplicates exist!**Creating unique message generation**
+
+I’m setting up a deterministic generation system using nested loops to create unique popups. By defining five categories (salutations, actions, feelings, requests, and closings), I aim for a robust 50,000 combinations, but I’ll fill only the first 200, ensuring uniqueness without indexed suffixes.
+
+To make popups manageable, I'll allow parameters for total popups converted dynamically. After creating the messages, I'll implement features like minimizing, expanding on click, and ensuring readability. I'll also refine heart designs for clarity, ensuring the outlines are consistent and visually appealing.**Generating unique popups**
+
+I'm planning to create a unique list of 200 popups using nested loops and pre-defined templates. To ensure no duplicates, I’ll generate combinations with slight variations in punctuation. I’ll set up arrays for different segments of the messages, combining them in a structured way.
+
+After generating the messages, I'll implement the popups to minimize after scatter, making it easy to expand them by clicking anywhere. I'll ensure that all popups remain unique, and I’ll be ready to provide the full HTML code with customizable parameters, keeping it clear and organized.</div></div>
+
+下面这份是“更像、更清晰轮廓 + 出来慢一点 + 散落后默认收起可点开看 + 固定200条且文字不重复”的完整版本。你把 `index.html`（或 `b/index.html`）整份替换即可。
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>爱心弹窗（更像更清 + 慢速出现 + 散落可点开 + 200不重复）</title>
+
+  <style>
+    :root { color-scheme: dark; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body{
+      min-height: 100dvh;
+      background:
+        radial-gradient(900px 600px at 20% 10%, #2a1030 0%, transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, #0b2a3a 0%, transparent 55%),
+        #05060a;
+      color: #fff;
+    }
+
+    #layer{
+      position: fixed;
+      inset: 0;
+      height: 100dvh;
+      z-index: 9999;
+    }
+
+    :root{
+      --popup-w: clamp(110px, 28vw, 156px);
+      --popup-h: clamp(72px, 9.6vh, 104px);
+      --bar-h: 26px;
+      --radius: 12px;
+      --font: clamp(10px, 1.14vh, 12px);
+    }
+
+    @media (min-width: 900px){
+      :root{
+        --popup-w: 188px;
+        --popup-h: 114px;
+        --bar-h: 32px;
+        --radius: 14px;
+        --font: 13.5px;
+      }
+    }
+
+    .popup{
+      position: fixed;
+      width: var(--popup-w);
+      height: var(--popup-h);
+      border-radius: var(--radius);
+      background: rgba(18,20,28,.62);
+      border: 2px solid rgba(255,255,255,.18);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+      overflow: hidden;
+      transform: translate(-50%, -50%);
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .popup.minimized{
+      height: var(--bar-h);
+      background: rgba(18,20,28,.78);
+    }
+
+    .popup.dragging{ will-change: left, top, transform; }
+
+    .popup.focused{
+      outline: 2px solid rgba(255,255,255,.16);
+      box-shadow: 0 22px 70px rgba(0,0,0,.55);
+    }
+
+    .bar{
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px 0 10px;
+      background: rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .popup.minimized .bar{ cursor: pointer; }
+    .bar:active{ cursor: grabbing; }
+
+    .hint{
+      margin-left: auto;
+      font-size: 11px;
+      opacity: .72;
+      display: none;
+      white-space: nowrap;
+    }
+    .popup.minimized .hint{ display: block; }
+
+    .close{
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+
+    .content{
+      height: calc(var(--popup-h) - var(--bar-h));
+      display: grid;
+      place-items: center;
+      padding: 7px 9px;
+      text-align: center;
+      font-size: var(--font);
+      color: rgba(255,255,255,.95);
+      user-select: text;
+      line-height: 1.25;
+    }
+    .popup.minimized .content{ display: none; }
+
+    .popIn{ animation: popIn .68s cubic-bezier(.2,.9,.2,1) both; }
+    @keyframes popIn{
+      from{ opacity: 0; transform: translate(-50%, -50%) scale(.82); }
+      to{ opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .popIn{ animation: none; }
+      .popup{ transition: none !important; }
+    }
+
+    .toolbar{
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 10000;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .toolbar button{
+      pointer-events: auto;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,.65);
+      color: #fff;
+      font-weight: 800;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="layer"></div>
+
+  <div class="toolbar">
+    <button id="replay">重播</button>
+    <button id="clear">清空</button>
+  </div>
+
+  <script>
+    const layer = document.getElementById('layer');
+    const params = new URLSearchParams(location.search);
+
+    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
+    const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
+
+    const totalPopups = 200; // 你要“200条”
+    const heartPopups = Math.min(
+      totalPopups,
+      Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 120)))
+    );
+
+    // 越大越慢：你要慢一点，默认就给慢
+    const defaultSpeed = isMobile ? 95 : 80;
+    const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
+
+    // 散落与“散落后收起可点开”
+    const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
+    const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 3200 : 2200)));
+    const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 900 : 1000)));
+    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 20 : 14)));
+
+    // 顶部/底部预留：有固定栏挡住就用 ?top=120
+    const topReserve = Math.max(0, Number(params.get('top') || 0));
+    const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
+
+    const TAU = Math.PI * 2;
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.trunc(v))); }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function gcd(a, b) {
+      a = Math.abs(a); b = Math.abs(b);
+      while (b) { const t = a % b; a = b; b = t; }
+      return a || 1;
+    }
+
+    function spreadOrder(n) {
+      if (n <= 1) return [0];
+      let step = Math.floor(n / 2);
+      if (step % 2 === 0) step += 1;
+      while (gcd(step, n) !== 1) step += 2;
+
+      const out = new Array(n);
+      let idx = 0;
+      for (let i = 0; i < n; i++) {
+        out[i] = idx;
+        idx = (idx + step) % n;
+      }
+      return out;
+    }
+
+    // 200条“文字不重复”：组合生成，确保每条唯一
+    function generateUniqueMessages(total, name) {
+      const A = [
+        "我想你了", "我好想你", "我在想你", "我又想你了", "我一直在想你",
+        "我真的很喜欢你", "我特别想你", "我忍不住想你", "我想抱抱你", "我想亲亲你",
+        "我想见你", "我想听你声音", "我想和你说话", "我想把你抱紧", "我想靠近你",
+        "我想把你宠坏", "我想把你护好", "我想把你放在心上", "我想把你写进今天", "我想把你藏进梦里",
+      ];
+
+      const B = [
+        "记得喝水", "好好吃饭", "别熬夜", "别逞强", "累了就休息",
+        "不开心就说", "难受就来找我", "出门注意安全", "到家告诉我一声", "别想太多",
+        "把自己照顾好", "今天也要开心一点",
+      ];
+
+      const C = [
+        "我在这儿", "我一直在", "我会陪着你", "我会听你说", "我会抱紧你",
+        "我会更懂你", "我会好好爱你", "我会让你安心", "我会给你偏爱", "我会站在你这边",
+      ];
+
+      const D = [
+        "好不好", "听话", "别怕", "抱抱", "亲亲",
+        "我等你", "想你", "晚安", "我爱你", "我在",
+      ];
+
+      const msgs = [];
+      const seen = new Set();
+
+      for (let i = 0; i < A.length && msgs.length < total; i++) {
+        for (let j = 0; j < B.length && msgs.length < total; j++) {
+          for (let k = 0; k < C.length && msgs.length < total; k++) {
+            for (let m = 0; m < D.length && msgs.length < total; m++) {
+              const s = `${A[i]}，${name}。${B[j]}。${C[k]}。${D[m]}。`;
+              if (!seen.has(s)) {
+                seen.add(s);
+                msgs.push(s);
+              }
+            }
+          }
+        }
+      }
+
+      // 兜底：理论上不会触发（组合数足够大），但保证永远够total且不重复
+      let guard = 0;
+      while (msgs.length < total && guard++ < total * 10) {
+        const s = `我想你了，${name}。这是给你的第${msgs.length + 1}个小心动。`;
+        if (!seen.has(s)) {
+          seen.add(s);
+          msgs.push(s);
+        }
+      }
+
+      return shuffle(msgs);
+    }
+
+    // 心形参数方程
+    function heartPoint(t) {
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      return { x, y };
+    }
+
+    // 导数：用于切线/法线
+    function heartDeriv(t) {
+      const s = Math.sin(t), c = Math.cos(t);
+      const dx = 48 * s * s * c;
+      const dy = -13 * Math.sin(t) + 10 * Math.sin(2 * t) + 6 * Math.sin(3 * t) + 4 * Math.sin(4 * t);
+      return { dx, dy };
+    }
+
+    // 弧长查表（等距取点更“像”更稳）
+    let cachedLUT = null;
+    function getHeartLUT(samples = 3000) {
+      if (cachedLUT && cachedLUT.samples === samples) return cachedLUT;
+
+      const points = new Array(samples + 1);
+      const ts = new Float32Array(samples + 1);
+      const lengths = new Float32Array(samples + 1);
+
+      let total = 0;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+      let prev = null;
+      for (let i = 0; i <= samples; i++) {
+        const t = (i / samples) * TAU;
+        const p = heartPoint(t);
+
+        points[i] = p;
+        ts[i] = t;
+
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+
+        if (prev) total += Math.hypot(p.x - prev.x, p.y - prev.y);
+        lengths[i] = total;
+        prev = p;
+      }
+
+      cachedLUT = {
+        samples,
+        points,
+        ts,
+        lengths,
+        total,
+        minX, maxX, minY, maxY,
+        midX: (minX + maxX) / 2,
+        midY: (minY + maxY) / 2,
+        width: (maxX - minX),
+        height: (maxY - minY),
+      };
+      return cachedLUT;
+    }
+
+    function sampleHeartByArc(lut, count, phase = 0) {
+      const out = new Array(count);
+      const step = lut.total / count;
+      let seg = 0;
+
+      for (let i = 0; i < count; i++) {
+        const d = (i + phase) * step;
+
+        while (seg < lut.samples - 1 && lut.lengths[seg + 1] < d) seg++;
+
+        const d0 = lut.lengths[seg];
+        const d1 = lut.lengths[seg + 1];
+        const u = d1 === d0 ? 0 : (d - d0) / (d1 - d0);
+
+        const p0 = lut.points[seg];
+        const p1 = lut.points[seg + 1];
+        const t0 = lut.ts[seg];
+        const t1 = lut.ts[seg + 1];
+
+        out[i] = {
+          x: p0.x + (p1.x - p0.x) * u,
+          y: p0.y + (p1.y - p0.y) * u,
+          t: t0 + (t1 - t0) * u
+        };
+      }
+      return out;
+    }
+
+    function borderColor() {
+      const hue = Math.floor(rand(0, 360));
+      return `hsl(${hue} 92% 65%)`;
+    }
+
+    function ringOffsetsFromCount(rings) {
+      if (rings <= 1) return [0];
+      const out = [];
+      const mid = (rings - 1) / 2;
+      const step = isMobile ? 10 : 12;
+      for (let i = 0; i < rings; i++) out.push(Math.round((i - mid) * step));
+      return out;
+    }
+
+    let buildToken = 0;
+    let timers = [];
+    let scatteredOnce = false;
+
+    let topZ = 1000;
+    function bringToFront(el) {
+      topZ = Math.max(topZ + 1, Number(el.style.zIndex || 0) + 1);
+      el.style.zIndex = String(topZ);
+      el.classList.add('focused');
+      setTimeout(() => el.classList.remove('focused'), 350);
+    }
+
+    function schedule(token, fn, ms) {
+      const id = setTimeout(() => {
+        if (token !== buildToken) return;
+        fn();
+      }, ms);
+      timers.push(id);
+    }
+
+    function resetScene() {
+      for (const id of timers) clearTimeout(id);
+      timers = [];
+      layer.replaceChildren();
+      scatteredOnce = false;
+    }
+
+    function setMinimized(el, on) {
+      el.classList.toggle('minimized', !!on);
     }
 
     function scatterPopups(token, popups, durationMs) {
@@ -366,7 +846,7 @@
 
         const x = rand(halfW + margin, innerWidth - halfW - margin);
         const y = rand(halfH + margin, innerHeight - halfH - margin);
-        const rot = rand(-16, 16);
+        const rot = rand(-12, 12);
 
         el.style.transition =
           `left ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
@@ -389,7 +869,7 @@
       }, durationMs + 40);
     }
 
-    function makePopup({ cx, cy, text, z }) {
+    function makePopup({ cx, cy, text, z, minimized }) {
       const el = document.createElement('div');
       el.className = 'popup popIn';
       el.style.left = cx + 'px';
@@ -400,12 +880,15 @@
 
       el.innerHTML = `
         <div class="bar">
-          <span>♡ ${nickname}</span>
+          <span class="title">♡ ${nickname}</span>
+          <span class="hint" aria-hidden="true">点开查看</span>
           <button class="close" aria-label="关闭">×</button>
         </div>
         <div class="content"></div>
       `;
       el.querySelector('.content').textContent = text;
+
+      setMinimized(el, minimized);
 
       el.addEventListener('pointerdown', () => bringToFront(el), { passive: true });
 
@@ -422,6 +905,14 @@
 
       bar.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
+
+        // 散落后默认收起：点标题栏直接展开阅读
+        if (el.classList.contains('minimized')) {
+          bringToFront(el);
+          setMinimized(el, false);
+          return;
+        }
+
         dragging = true;
         el.classList.add('dragging');
         el.setPointerCapture(e.pointerId);
@@ -465,7 +956,7 @@
       probe.style.visibility = 'hidden';
       probe.style.pointerEvents = 'none';
       probe.innerHTML = `
-        <div class="bar"><span>♡</span><button class="close">×</button></div>
+        <div class="bar"><span>♡</span><span class="hint">点开查看</span><button class="close">×</button></div>
         <div class="content">test</div>
       `;
       document.body.appendChild(probe);
@@ -480,27 +971,31 @@
 
       resetScene();
 
+      const messages = generateUniqueMessages(totalPopups, nickname);
+      let msgIndex = 0;
+      const nextText = () => messages[msgIndex++ % messages.length];
+
       const W = innerWidth;
       const H = innerHeight;
 
       const { w: popupW, h: popupH } = measurePopupSize();
       const margin = 10;
 
-      const lut = getHeartLUT(2600);
+      const lut = getHeartLUT(3000);
 
-      // 基础拉伸：让两瓣更展开、整体更心形
-      const xStretchBase = isMobile ? 1.32 : 1.12;
-      const yStretchBase = isMobile ? 1.12 : 1.04;
+      // 更像：顶部更展开、底部更尖
+      const xStretchBase = isMobile ? 1.38 : 1.16;
+      const yStretchBase = isMobile ? 1.16 : 1.06;
 
-      // 留白时按“有效占位”估计，避免因为弹窗宽高导致心形压扁
-      const effectiveW = popupW * 0.60;
-      const effectiveH = popupH * 0.60;
+      // 用“有效占位”避免 fit 压扁
+      const effectiveW = popupW * 0.58;
+      const effectiveH = popupH * 0.58;
 
       const availH = Math.max(120, H - topReserve - bottomReserve);
       const usableW = Math.max(80, W - 2 * margin - effectiveW);
       const usableH = Math.max(80, availH - 2 * margin - effectiveH);
 
-      const scale = 0.98 * Math.min(
+      const scale = 0.985 * Math.min(
         usableW / (lut.width * xStretchBase),
         usableH / (lut.height * yStretchBase)
       );
@@ -508,8 +1003,9 @@
       const centerX = W / 2;
       const centerY = topReserve + availH / 2 + (isMobile ? 6 : 10);
 
-      // 手机用单圈更清晰更像“轮廓”；桌面可 3 圈更厚实
-      const ringOffsetsPx = isMobile ? [0] : [-16, 0, 16];
+      // “轮廓更清”：默认单圈；想加厚可 ?rings=3
+      const rings = clampInt(Number(params.get('rings') || 1), 1, 5);
+      const ringOffsetsPx = ringOffsetsFromCount(rings);
       const ringCount = ringOffsetsPx.length;
 
       const base = Math.floor(heartPopups / ringCount);
@@ -526,13 +1022,13 @@
         for (const p of pts) {
           const yRel = (p.y - lut.midY) / (lut.height / 2);
 
-          // 下半部分（yRel < 0）：收窄 X + 略拉长 Y => 底部更尖
-          // 上半部分（yRel > 0）：略展开 X => 两瓣更明显
-          const bottomNarrow = clamp(1 + yRel * 0.28, 0.65, 1.15);
-          const topWiden = clamp(1 + yRel * 0.10, 0.95, 1.18);
+          // yRel < 0 为下半部分：X收窄 + Y拉长 => 底部更尖
+          // yRel > 0 为上半部分：X略展开 => 两瓣更明显
+          const bottomNarrow = clamp(1 + yRel * 0.60, 0.45, 1.08); // yRel=-1 => 0.45
+          const topWiden = clamp(1 + yRel * 0.20, 0.92, 1.26);
 
           const xStretch = xStretchBase * (yRel < 0 ? bottomNarrow : topWiden);
-          const yStretch = yStretchBase * (yRel < 0 ? 1.10 : 1.02);
+          const yStretch = yStretchBase * (yRel < 0 ? 1.22 : 1.03);
 
           const dx = (p.x - lut.midX) * scale * xStretch;
           const dy = (p.y - lut.midY) * scale * yStretch;
@@ -541,13 +1037,13 @@
           const tx = d.dx * xStretch;
           const ty = d.dy * yStretch;
 
-          // 法线偏移（用于多圈轮廓）
+          // 法线用于多圈偏移
           let nx = -ty, ny = tx;
           const nl = Math.hypot(nx, ny) || 1;
           nx /= nl; ny /= nl;
 
           const cx = centerX + dx + nx * off;
-          const cy = centerY - dy - ny * off; // y 轴翻转
+          const cy = centerY - dy - ny * off; // y轴翻转
 
           outlineItems.push({ cx, cy });
         }
@@ -555,21 +1051,23 @@
 
       const orderIdx = spreadOrder(outlineItems.length);
 
-      const pool = shuffle([...words]);
-      let textIndex = 0;
-
       const created = [];
       let order = 0;
 
       for (const idx of orderIdx) {
         const { cx, cy } = outlineItems[idx];
-        const text = pool[textIndex++ % pool.length];
+        const text = nextText();
         const delay = order * appearIntervalMs;
         const z = 10 + order;
         order++;
 
         schedule(token, () => {
-          created.push(makePopup({ cx, cy, text, z }));
+          created.push(makePopup({
+            cx, cy,
+            text,
+            z,
+            minimized: false
+          }));
         }, delay);
       }
 
@@ -577,6 +1075,12 @@
 
       if (scatterEnabled) {
         schedule(token, () => {
+          scatteredOnce = true;
+
+          if (minimizeAfterScatter) {
+            for (const el of created) setMinimized(el, true);
+          }
+
           scatterPopups(token, created, scatterDurationMs);
 
           const need = Math.max(0, totalPopups - outlineItems.length);
@@ -587,8 +1091,13 @@
             schedule(token, () => {
               const x = rand(halfW + margin, innerWidth - halfW - margin);
               const y = rand(halfH + margin, innerHeight - halfH - margin);
-              const text = pool[textIndex++ % pool.length];
-              makePopup({ cx: x, cy: y, text, z: 10 + order++ });
+              makePopup({
+                cx: x,
+                cy: y,
+                text: nextText(),
+                z: 10 + order++,
+                minimized: minimizeAfterScatter && scatteredOnce
+              });
             }, k * extraSpawnGapMs);
           }
         }, lastDelay + scatterDelayMs);
