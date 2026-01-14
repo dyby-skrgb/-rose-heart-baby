@@ -29,10 +29,9 @@
       position:fixed;
       inset:0;
       height:100dvh;
-      z-index:1;
+      z-index:9999;
     }
 
-    /* 普遍手机（360~430px CSS宽）：更小弹窗+更小字 */
     :root{
       --popup-w: clamp(104px, 28vw, 150px);
       --popup-h: clamp(66px, 9.2vh, 98px);
@@ -56,8 +55,8 @@
       width:var(--popup-w);
       height:var(--popup-h);
       border-radius:var(--radius);
-      background:rgba(18,20,28,.84);
-      border:2px solid rgba(255,255,255,.16);
+      background:rgba(18,20,28,.66);
+      border:2px solid rgba(255,255,255,.18);
       box-shadow:0 18px 55px rgba(0,0,0,.45);
       overflow:hidden;
       transform: translate(-50%, -50%);
@@ -114,9 +113,9 @@
       user-select:text;
     }
 
-    .popIn{ animation: popIn .52s cubic-bezier(.2,.9,.2,1) both; }
+    .popIn{ animation: popIn .48s cubic-bezier(.2,.9,.2,1) both; }
     @keyframes popIn{
-      from{ opacity:0; transform:translate(-50%,-50%) scale(.78); }
+      from{ opacity:0; transform:translate(-50%,-50%) scale(.80); }
       to{ opacity:1; transform:translate(-50%,-50%) scale(1); }
     }
 
@@ -130,7 +129,7 @@
       left: 12px;
       right: 12px;
       bottom: calc(12px + env(safe-area-inset-bottom));
-      z-index: 2;
+      z-index:10000;
       display:flex;
       gap:10px;
       justify-content:center;
@@ -166,56 +165,45 @@
 
     const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
 
-    // 总数 200；轮廓阶段用更少的数量，才能“稀疏空灵”
     const totalPopups = Math.max(10, Number(params.get('total') || 200));
+
+    // 轮廓阶段：越少越“空灵”，越像“线条”
     const heartPopups = Math.min(
       totalPopups,
-      Math.max(10, Number(params.get('heart') || (isMobile ? 72 : 160)))
+      Math.max(10, Number(params.get('heart') || (isMobile ? 60 : 180)))
     );
 
-    // 越大越慢；手机默认更快一点（避免成型等待太久）
-    const defaultSpeed = isMobile ? 45 : 80;
-    const appearIntervalMs = Math.max(10, Number(params.get('speed') || defaultSpeed));
+    // 越大越慢
+    const defaultSpeed = isMobile ? 16 : 70;
+    const appearIntervalMs = Math.max(8, Number(params.get('speed') || defaultSpeed));
 
-    // 先形成爱心，再散落（默认开启）
+    // 散落
     const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
-    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 1100 : 1200)));
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 2200 : 1200)));
     const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 900 : 1000)));
+    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 10 : 8)));
 
-    // 散落后补齐到 totalPopups 的出现节奏
-    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 12 : 8)));
+    // 如果你的页面顶部有固定栏挡住心形，可用 ?top=120 往下挪
+    const topReserve = Math.max(0, Number(params.get('top') || 0));
+    const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
 
     const words = [
       `好好吃饭，${nickname}，我会心疼。`,
       `早点睡觉，不许熬夜，听话。`,
       `我想你了，真的。`,
-      `我刚刚又想你了…不止刚刚。`,
       `你忙你的，我乖乖想你。`,
-      `我这边一切都好，就是有点想你。`,
-      `想抱你一下，就一下也行。`,
       `你给我发条消息，我能开心一整天。`,
       `别逞强，难受就来找我。`,
-      `你不说我也懂，但我还是想你说。`,
-      `你今天有没有想我？我有。`,
-      `我在等你忙完。`,
       `你一笑，我就什么都原谅了。`,
       `不开心就冲我撒娇，我接住。`,
-      `喝水了吗？我监督你。`,
-      `别皱眉，来，给你一个抱抱。`,
-      `你出现以后，我的心就开始偏心了。`,
-      `我想成为你最安心的那个人。`,
-      `你别怕，我一直都在。`,
-      `看到你名字，我就会忍不住笑。`,
-      `如果想我了就直说，我会更开心。`,
-      `我想你想得有点过分。`,
-      `你别总是自己扛，我想参与。`,
       `到家跟我说一声，乖。`,
       `我对你，心软得一塌糊涂。`,
-      `你靠近一点，我就投降。`,
       `别想太多，来想我。`,
       `你要记得：你有人惦记。`,
       `晚安，${nickname}，梦里也要想我。`,
     ];
+
+    const TAU = Math.PI * 2;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -228,10 +216,112 @@
       return arr;
     }
 
+    function gcd(a, b) {
+      a = Math.abs(a); b = Math.abs(b);
+      while (b) { const t = a % b; a = b; b = t; }
+      return a || 1;
+    }
+
+    // 让“出现过程”也像心：按跳步顺序铺满整圈
+    function spreadOrder(n) {
+      if (n <= 1) return [0];
+      let step = Math.floor(n / 2);
+      if (step % 2 === 0) step += 1;
+      while (gcd(step, n) !== 1) step += 2;
+
+      const out = new Array(n);
+      let idx = 0;
+      for (let i = 0; i < n; i++) {
+        out[i] = idx;
+        idx = (idx + step) % n;
+      }
+      return out;
+    }
+
+    // 标准心形参数方程
     function heartPoint(t) {
       const x = 16 * Math.pow(Math.sin(t), 3);
       const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
       return { x, y };
+    }
+
+    // 导数用于求切线/法线
+    function heartDeriv(t) {
+      const s = Math.sin(t), c = Math.cos(t);
+      const dx = 48 * s * s * c;
+      const dy = -13 * Math.sin(t) + 10 * Math.sin(2 * t) + 6 * Math.sin(3 * t) + 4 * Math.sin(4 * t);
+      return { dx, dy };
+    }
+
+    // 弧长查表：用于“等距”取点，轮廓更稳更像
+    let cachedLUT = null;
+    function getHeartLUT(samples = 2600) {
+      if (cachedLUT && cachedLUT.samples === samples) return cachedLUT;
+
+      const points = new Array(samples + 1);
+      const ts = new Float32Array(samples + 1);
+      const lengths = new Float32Array(samples + 1);
+
+      let total = 0;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+      let prev = null;
+      for (let i = 0; i <= samples; i++) {
+        const t = (i / samples) * TAU;
+        const p = heartPoint(t);
+
+        points[i] = p;
+        ts[i] = t;
+
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+
+        if (prev) total += Math.hypot(p.x - prev.x, p.y - prev.y);
+        lengths[i] = total;
+        prev = p;
+      }
+
+      cachedLUT = {
+        samples,
+        points,
+        ts,
+        lengths,
+        total,
+        minX, maxX, minY, maxY,
+        midX: (minX + maxX) / 2,
+        midY: (minY + maxY) / 2,
+        width: (maxX - minX),
+        height: (maxY - minY),
+      };
+      return cachedLUT;
+    }
+
+    function sampleHeartByArc(lut, count, phase = 0) {
+      const out = new Array(count);
+      const step = lut.total / count;
+      let seg = 0;
+
+      for (let i = 0; i < count; i++) {
+        const d = (i + phase) * step;
+
+        while (seg < lut.samples - 1 && lut.lengths[seg + 1] < d) seg++;
+
+        const d0 = lut.lengths[seg];
+        const d1 = lut.lengths[seg + 1];
+        const u = d1 === d0 ? 0 : (d - d0) / (d1 - d0);
+
+        const p0 = lut.points[seg];
+        const p1 = lut.points[seg + 1];
+        const t0 = lut.ts[seg];
+        const t1 = lut.ts[seg + 1];
+
+        out[i] = {
+          x: p0.x + (p1.x - p0.x) * u,
+          y: p0.y + (p1.y - p0.y) * u,
+          t: t0 + (t1 - t0) * u
+        };
+      }
+      return out;
     }
 
     function borderColor() {
@@ -384,31 +474,6 @@
       return { w: rect.width, h: rect.height };
     }
 
-    function getHeartStats(samples = 720) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      let perimeter = 0;
-      let prev = null;
-
-      for (let i = 0; i <= samples; i++) {
-        const t = (i / samples) * Math.PI * 2;
-        const p = heartPoint(t);
-
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-
-        if (prev) perimeter += Math.hypot(p.x - prev.x, p.y - prev.y);
-        prev = p;
-      }
-
-      return {
-        midX: (minX + maxX) / 2,
-        midY: (minY + maxY) / 2,
-        width: maxX - minX,
-        height: maxY - minY,
-        perimeter
-      };
-    }
-
     function buildHeart() {
       buildToken++;
       const token = buildToken;
@@ -421,37 +486,74 @@
       const { w: popupW, h: popupH } = measurePopupSize();
       const margin = 10;
 
-      // 预留底部按钮高度，避免挡住心形
-      const bottomReserve = isMobile ? 96 : 0;
+      const lut = getHeartLUT(2600);
 
-      // 手机：2 圈更饱满，但圈上点数少 => 更稀疏更空灵
-      const rings = isMobile ? 2 : 3;
-      const ringSpread = isMobile ? 0.10 : 0.06;
-      const maxRingOffset = ((rings - 1) / 2) * ringSpread;
+      // 基础拉伸：让两瓣更展开、整体更心形
+      const xStretchBase = isMobile ? 1.32 : 1.12;
+      const yStretchBase = isMobile ? 1.12 : 1.04;
 
-      const stats = getHeartStats(720);
+      // 留白时按“有效占位”估计，避免因为弹窗宽高导致心形压扁
+      const effectiveW = popupW * 0.60;
+      const effectiveH = popupH * 0.60;
 
-      const usableW = Math.max(50, W - 2 * margin - popupW);
-      const usableH = Math.max(50, (H - bottomReserve) - 2 * margin - popupH);
+      const availH = Math.max(120, H - topReserve - bottomReserve);
+      const usableW = Math.max(80, W - 2 * margin - effectiveW);
+      const usableH = Math.max(80, availH - 2 * margin - effectiveH);
 
-      // 关键：把弹窗尺寸算进去，保证心形“放得下”
-      const scaleFit =
-        0.98 *
-        Math.min(usableW / stats.width, usableH / stats.height) /
-        (1 + maxRingOffset);
-
-      // 更稀疏：间距更大（越大越空灵）
-      const baseSpacing = isMobile ? Math.max(popupW * 1.30, 42) : Math.max(popupW * 0.55, 26);
-      const scaledPerimeter = stats.perimeter * scaleFit;
-
-      // “物理上最多能放多少而不糊”
-      const maxPerRingBySpacing = Math.floor(
-        clamp(scaledPerimeter / baseSpacing, isMobile ? 12 : 35, isMobile ? 28 : 110)
+      const scale = 0.98 * Math.min(
+        usableW / (lut.width * xStretchBase),
+        usableH / (lut.height * yStretchBase)
       );
 
-      // 把 heartPopups 平均分配到 rings
-      const perRingTarget = Math.ceil(heartPopups / rings);
-      const perRing = Math.floor(clamp(perRingTarget, isMobile ? 12 : 35, maxPerRingBySpacing));
+      const centerX = W / 2;
+      const centerY = topReserve + availH / 2 + (isMobile ? 6 : 10);
+
+      // 手机用单圈更清晰更像“轮廓”；桌面可 3 圈更厚实
+      const ringOffsetsPx = isMobile ? [0] : [-16, 0, 16];
+      const ringCount = ringOffsetsPx.length;
+
+      const base = Math.floor(heartPopups / ringCount);
+      const rem = heartPopups % ringCount;
+
+      const outlineItems = [];
+      for (let r = 0; r < ringCount; r++) {
+        const count = base + (r < rem ? 1 : 0);
+        const phase = (r / ringCount) * 0.45;
+
+        const pts = sampleHeartByArc(lut, count, phase);
+        const off = ringOffsetsPx[r];
+
+        for (const p of pts) {
+          const yRel = (p.y - lut.midY) / (lut.height / 2);
+
+          // 下半部分（yRel < 0）：收窄 X + 略拉长 Y => 底部更尖
+          // 上半部分（yRel > 0）：略展开 X => 两瓣更明显
+          const bottomNarrow = clamp(1 + yRel * 0.28, 0.65, 1.15);
+          const topWiden = clamp(1 + yRel * 0.10, 0.95, 1.18);
+
+          const xStretch = xStretchBase * (yRel < 0 ? bottomNarrow : topWiden);
+          const yStretch = yStretchBase * (yRel < 0 ? 1.10 : 1.02);
+
+          const dx = (p.x - lut.midX) * scale * xStretch;
+          const dy = (p.y - lut.midY) * scale * yStretch;
+
+          const d = heartDeriv(p.t);
+          const tx = d.dx * xStretch;
+          const ty = d.dy * yStretch;
+
+          // 法线偏移（用于多圈轮廓）
+          let nx = -ty, ny = tx;
+          const nl = Math.hypot(nx, ny) || 1;
+          nx /= nl; ny /= nl;
+
+          const cx = centerX + dx + nx * off;
+          const cy = centerY - dy - ny * off; // y 轴翻转
+
+          outlineItems.push({ cx, cy });
+        }
+      }
+
+      const orderIdx = spreadOrder(outlineItems.length);
 
       const pool = shuffle([...words]);
       let textIndex = 0;
@@ -459,43 +561,25 @@
       const created = [];
       let order = 0;
 
-      const centerX = W / 2;
-      const centerY = ((H - bottomReserve) / 2) + (isMobile ? 4 : 10);
+      for (const idx of orderIdx) {
+        const { cx, cy } = outlineItems[idx];
+        const text = pool[textIndex++ % pool.length];
+        const delay = order * appearIntervalMs;
+        const z = 10 + order;
+        order++;
 
-      // 轮廓阶段：只创建 heartPopups 左右数量（稀疏好看）
-      for (let r = 0; r < rings; r++) {
-        const ringOffset = (r - (rings - 1) / 2) * ringSpread;
-        const scale = scaleFit * (1 + ringOffset);
-
-        for (let i = 0; i < perRing; i++) {
-          const t = (i / perRing) * Math.PI * 2;
-          const p = heartPoint(t);
-
-          const jitter = isMobile ? 0 : Math.min(W, H) * 0.0025;
-
-          const cx = centerX + (p.x - stats.midX) * scale + rand(-jitter, jitter);
-          const cy = centerY - (p.y - stats.midY) * scale + rand(-jitter, jitter);
-
-          const text = pool[textIndex++ % pool.length];
-          const delay = order * appearIntervalMs;
-          const z = 10 + order;
-          order++;
-
-          schedule(token, () => {
-            created.push(makePopup({ cx, cy, text, z }));
-          }, delay);
-        }
+        schedule(token, () => {
+          created.push(makePopup({ cx, cy, text, z }));
+        }, delay);
       }
 
       const lastDelay = Math.max(0, (order - 1) * appearIntervalMs);
 
-      // 成型后散落 + 补齐到 totalPopups(默认200)
       if (scatterEnabled) {
         schedule(token, () => {
           scatterPopups(token, created, scatterDurationMs);
 
-          const need = Math.max(0, totalPopups - created.length);
-
+          const need = Math.max(0, totalPopups - outlineItems.length);
           const halfW = popupW / 2;
           const halfH = popupH / 2;
 
