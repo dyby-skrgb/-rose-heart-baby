@@ -1,1 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>给宝宝的小提示qwq</title>
+  <style>
+    :root { color-scheme: dark; }
 
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body{
+      min-height: 100dvh;
+      background:
+        radial-gradient(900px 600px at 20% 10%, #2a1030 0%, transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, #0b2a3a 0%, transparent 55%),
+        #05060a;
+      color:#fff;
+    }
+
+    #layer{
+      position:fixed;
+      inset:0;
+      height: 100dvh;
+      z-index:1
+    }
+
+    :root{
+      --popup-w: clamp(190px, 52vw, 260px);
+      --popup-h: clamp(118px, 18vh, 160px);
+      --bar-h: clamp(36px, 5.4vh, 44px);
+      --radius: 16px;
+      --font: clamp(13px, 1.7vh, 15px);
+    }
+
+    .popup{
+      position:fixed;
+      width: var(--popup-w);
+      height: var(--popup-h);
+      border-radius: var(--radius);
+      background:rgba(18,20,28,.92);
+      border:2px solid rgba(255,255,255,.18);
+      box-shadow:0 18px 55px rgba(0,0,0,.45);
+      overflow:hidden;
+      transform: translate(-50%, -50%);
+      touch-action: manipulation;
+      user-select:none;
+    }
+    .popup.dragging{
+      will-change: left, top, transform;
+    }
+    .popup.focused{
+      outline:2px solid rgba(255,255,255,.18);
+      box-shadow:0 22px 70px rgba(0,0,0,.55);
+    }
+
+    .bar{
+      height: var(--bar-h);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 10px 0 12px;
+      background:rgba(255,255,255,.06);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      font-size:12px;color:rgba(255,255,255,.85);
+      cursor:grab;
+      touch-action: none;
+      user-select:none;
+    }
+    .bar:active{cursor:grabbing}
+
+    .close{
+      width:30px;height:30px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.10);
+      color:#fff;cursor:pointer;
+      display:grid;place-items:center;
+      font-size:18px;line-height:1;
+      padding:0;
+    }
+
+    .content{
+      height: calc(var(--popup-h) - var(--bar-h));
+      display:grid;place-items:center;
+      padding:10px 12px;
+      text-align:center;
+      font-size: var(--font);
+      color:rgba(255,255,255,.95);
+      user-select:text;
+    }
+
+    .popIn{
+      animation: popIn .6s cubic-bezier(.2,.9,.2,1) both;
+    }
+    @keyframes popIn{
+      from{opacity:0; transform:translate(-50%,-50%) scale(.70)}
+      to{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .popIn{ animation:none; }
+      .popup{ transition:none !important; }
+    }
+
+    .toolbar{
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 2;
+      display:flex;
+      gap:10px;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .toolbar button{
+      pointer-events: auto;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,.65);
+      color:#fff;
+      font-weight: 700;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <div id="layer"></div>
+
+  <div class="toolbar" aria-hidden="false">
+    <button id="replay">重播</button>
+    <button id="clear">清空</button>
+  </div>
+
+  <script>
+    const layer = document.getElementById('layer');
+
+    const params = new URLSearchParams(location.search);
+    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
+
+    const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
+
+    const defaultSpeed = isMobile ? 95 : 80; // 越大越慢
+    const appearIntervalMs = Math.max(10, Number(params.get('speed') || defaultSpeed));
+
+    const scatterEnabled = (params.get('scatter') || '1') !== '0';
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 900 : 1200)));
+    const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 850 : 1000)));
+
+    const words = [
+      `好好吃饭，${nickname}，我会心疼。`,
+      `早点睡觉，不许熬夜，听话。`,
+      `我想你了，真的。`,
+      `我刚刚又想你了…不止刚刚。`,
+      `你忙你的，我乖乖想你。`,
+      `我这边一切都好，就是有点想你。`,
+      `想抱你一下，就一下也行。`,
+      `你给我发条消息，我能开心一整天。`,
+      `别逞强，难受就来找我。`,
+      `你不说我也懂，但我还是想你说。`,
+      `你今天有没有想我？我有。`,
+      `我在等你忙完。`,
+      `我把想你偷偷攒着，见面一次给你。`,
+      `我喜欢你认真生活的样子，也喜欢你依赖我的样子。`,
+      `你一笑，我就什么都原谅了。`,
+      `不开心就冲我撒娇，我接住。`,
+      `你是不是又没好好吃饭？`,
+      `喝水了吗？我监督你。`,
+      `别皱眉，来，给你一个抱抱。`,
+      `我想把你藏进我的口袋里。`,
+      `你出现以后，我的心就开始偏心了。`,
+      `我想成为你最安心的那个人。`,
+      `我不在你身边的时候，你也要照顾好自己。`,
+      `我有点想黏着你。`,
+      `你别太可爱，我会忍不住更喜欢你。`,
+      `你累了就靠我一下。`,
+      `你不许难过太久，我会心疼。`,
+      `你是我的偏爱，也是我的例外。`,
+      `不管你今天怎样，我都喜欢你。`,
+      `你别怕，我一直都在。`,
+      `别熬夜啦，我想要你健健康康。`,
+      `看到你名字，我就会忍不住笑。`,
+      `如果想我了就直说，我会更开心。`,
+      `你快点忙完，我要占用你。`,
+      `我想你想得有点过分。`,
+      `我承认，我对你有点上头。`,
+      `我好像越来越离不开你了。`,
+      `你一句话就能哄好我。`,
+      `你不理我，我就更想你了。`,
+      `你别总是自己扛，我想参与。`,
+      `你需要的时候，第一时间想起我好不好。`,
+      `如果你愿意，我想一直对你好。`,
+      `我想见你，立刻，现在。`,
+      `你别太晚回家，我会担心。`,
+      `到家跟我说一声，乖。`,
+      `我对你，心软得一塌糊涂。`,
+      `我想牵你的手，慢慢走。`,
+      `你靠近一点，我就投降。`,
+      `别想太多，来想我。`,
+      `你可以依赖我一点点，再多一点点也行。`,
+      `你是不是在偷笑？我也。`,
+      `想亲你一下（就一下）。`,
+      `你是我最想分享日常的人。`,
+      `我想你了，想得很认真。`,
+      `别委屈自己，我会站在你这边。`,
+      `你要记得：你有人惦记。`,
+      `晚安，${nickname}，梦里也要想我。`,
+    ];
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function heartPoint(t) {
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      return { x, y };
+    }
+
+    function borderColor() {
+      const hue = Math.floor(rand(0, 360));
+      return `hsl(${hue} 92% 65%)`;
+    }
+
+    let buildToken = 0;
+    let timers = [];
+
+    let topZ = 1000;
+    function bringToFront(el) {
+      topZ = Math.max(topZ + 1, Number(el.style.zIndex || 0) + 1);
+      el.style.zIndex = String(topZ);
+      el.classList.add('focused');
+      setTimeout(() => el.classList.remove('focused'), 350);
+    }
+
+    function schedule(token, fn, ms) {
+      const id = setTimeout(() => {
+        if (token !== buildToken) return;
+        fn();
+      }, ms);
+      timers.push(id);
+    }
+
+    function resetScene() {
+      for (const id of timers) clearTimeout(id);
+      timers = [];
+      layer.replaceChildren();
+    }
+
+    function scatterPopups(token, popups, durationMs) {
+      const margin = 10;
+
+      for (const el of popups) {
+        if (!el || !el.isConnected) continue;
+
+        const rect = el.getBoundingClientRect();
+        const halfW = rect.width / 2;
+        const halfH = rect.height / 2;
+
+        const x = rand(halfW + margin, innerWidth - halfW - margin);
+        const y = rand(halfH + margin, innerHeight - halfH - margin);
+        const rot = rand(-16, 16);
+
+        el.style.transition =
+          `left ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
+          `top ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
+          `transform ${durationMs}ms cubic-bezier(.2,.9,.2,1)`;
+
+        requestAnimationFrame(() => {
+          if (token !== buildToken || !el.isConnected) return;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          el.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;
+        });
+      }
+
+      schedule(token, () => {
+        for (const el of popups) {
+          if (!el || !el.isConnected) continue;
+          el.style.transition = '';
+        }
+      }, durationMs + 40);
+    }
+
+    function makePopup({ cx, cy, text, z }) {
+      const el = document.createElement('div');
+      el.className = 'popup popIn';
+      el.style.left = cx + 'px';
+      el.style.top = cy + 'px';
+      el.style.zIndex = String(z);
+      el.style.borderColor = borderColor();
+      topZ = Math.max(topZ, z);
+
+      el.innerHTML = `
+        <div class="bar">
+          <span>♡ ${nickname}</span>
+          <button class="close" aria-label="关闭">×</button>
+        </div>
+        <div class="content"></div>
+      `;
+      el.querySelector('.content').textContent = text;
+
+      el.addEventListener('pointerdown', () => bringToFront(el), { passive: true });
+
+      const closeBtn = el.querySelector('.close');
+      closeBtn.addEventListener('pointerdown', (e) => e.stopPropagation(), { passive: true });
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.remove();
+      });
+
+      const bar = el.querySelector('.bar');
+      let dragging = false;
+      let dx = 0, dy = 0;
+
+      bar.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        dragging = true;
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+
+        bringToFront(el);
+        el.style.transition = '';
+        el.style.transform = 'translate(-50%, -50%) scale(1)';
+
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        dx = e.clientX - centerX;
+        dy = e.clientY - centerY;
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const nextCx = clamp(e.clientX - dx, 20, innerWidth - 20);
+        const nextCy = clamp(e.clientY - dy, 20, innerHeight - 20);
+        el.style.left = nextCx + 'px';
+        el.style.top = nextCy + 'px';
+      });
+
+      function stopDrag(){
+        dragging = false;
+        el.classList.remove('dragging');
+      }
+      el.addEventListener('pointerup', stopDrag);
+      el.addEventListener('pointercancel', stopDrag);
+
+      layer.appendChild(el);
+      return el;
+    }
+
+    function buildHeart() {
+      buildToken++;
+      const token = buildToken;
+
+      resetScene();
+
+      const W = innerWidth;
+      const H = innerHeight;
+      const minDim = Math.min(W, H);
+
+      const rings = isMobile ? 2 : 3;
+      const ringSpread = isMobile ? 0.08 : 0.06;
+      const scaleBase = minDim / (isMobile ? 28 : 30);
+      const cx0 = W / 2;
+      const cy0 = H / 2 + (isMobile ? 6 : 10);
+
+      const totalRaw = Math.floor(minDim / (isMobile ? 4.8 : 3.2));
+      const total = Math.floor(clamp(totalRaw, isMobile ? 70 : 110, isMobile ? 140 : 220));
+      const perRing = Math.max(isMobile ? 28 : 40, Math.floor(total / rings));
+
+      const pool = shuffle([...words]);
+      let textIndex = 0;
+
+      const created = [];
+      let order = 0;
+
+      for (let r = 0; r < rings; r++) {
+        const ringOffset = (r - (rings - 1) / 2) * ringSpread;
+        const scale = scaleBase * (1 + ringOffset);
+
+        for (let i = 0; i < perRing; i++) {
+          const t = (i / perRing) * Math.PI * 2;
+          const p = heartPoint(t);
+
+          const jitter = minDim * (isMobile ? 0.003 : 0.0025);
+          const cx = cx0 + p.x * scale + rand(-jitter, jitter);
+          const cy = cy0 - p.y * scale + rand(-jitter, jitter);
+
+          const text = pool[textIndex++ % pool.length];
+          const delay = order * appearIntervalMs;
+          const z = 10 + order;
+          order++;
+
+          schedule(token, () => {
+            created.push(makePopup({ cx, cy, text, z }));
+          }, delay);
+        }
+      }
+
+      const lastDelay = Math.max(0, (order - 1) * appearIntervalMs);
+
+      if (scatterEnabled) {
+        schedule(token, () => {
+          scatterPopups(token, created, scatterDurationMs);
+        }, lastDelay + scatterDelayMs);
+      }
+    }
+
+    // 手机没键盘：给按钮
+    document.getElementById('replay').addEventListener('click', buildHeart);
+    document.getElementById('clear').addEventListener('click', () => { buildToken++; resetScene(); });
+
+    addEventListener('resize', () => buildHeart(), { passive: true });
+
+    buildHeart();
+  </script>
+</body>
+</html>
