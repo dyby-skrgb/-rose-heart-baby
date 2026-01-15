@@ -1,714 +1,362 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>给宝宝的小情书qwq</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>给宝宝的小情书</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  <style>
-    :root { color-scheme: dark; }
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
 
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      -webkit-tap-highlight-color: transparent;}
+#canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
 
-    body{
-      min-height: 100dvh;
-      background:
-        radial-gradient(900px 600px at 20% 10%, #2a1030 0%, transparent 55%),
-        radial-gradient(900px 600px at 80% 20%, #0b2a3a 0%, transparent 55%),
-        #05060a;
-      color: #fff;
-    }
+.popup {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  color: #333;
+  cursor: move;
+  user-select: none;
+  z-index: 10;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  max-width: 80vw;
+  word-wrap: break-word;
+}
 
-    #layer{
-      position: fixed;
-      inset: 0;
-      height: 100dvh;
-      z-index: 9999;
-    }
+.popup.show {
+  opacity: 1;
+  transform: scale(1);
+}
 
-    :root{
-      --popup-w: clamp(110px, 28vw, 156px);
-      --popup-h: clamp(72px, 9.6vh, 104px);
-      --bar-h: 26px;
-      --radius: 12px;
-      --font: clamp(10px, 1.14vh, 12px);
-    }
+.popup .close {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
 
-    @media (min-width: 900px){
-      :root{
-        --popup-w: 188px;
-        --popup-h: 114px;
-        --bar-h: 32px;
-        --radius: 14px;
-        --font: 13.5px;
-      }
-    }
+.controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
 
-    .popup{
-      position: fixed;
-      width: var(--popup-w);
-      height: var(--popup-h);
-      border-radius: var(--radius);
-      background: rgba(18,20,28,.62);
-      border: 2px solid rgba(255,255,255,.18);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
-      overflow: hidden;
-      transform: translate(-50%, -50%);
-      touch-action: manipulation;
-      user-select: none;
-    }
+.controls button {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+}
 
-    .popup.minimized{
-      height: var(--bar-h);
-      background: rgba(18,20,28,.78);
-    }
+.controls button:active {
+  transform: scale(0.95);
+}
 
-    .popup.dragging{ will-change: left, top, transform; }
-
-    .popup.focused{
-      outline: 2px solid rgba(255,255,255,.16);
-      box-shadow: 0 22px 70px rgba(0,0,0,.55);
-    }
-
-    .bar{
-      height: var(--bar-h);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 8px 0 10px;
-      background: rgba(255,255,255,.06);
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      font-size: 12px;
-      color: rgba(255,255,255,.85);
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-    }
-
-    .popup.minimized .bar{ cursor: pointer; }
-    .bar:active{ cursor: grabbing; }
-
-    .hint{
-      margin-left: auto;
-      font-size: 11px;
-      opacity: .72;
-      display: none;
-      white-space: nowrap;
-    }
-    .popup.minimized .hint{ display: block; }
-
-    .close{
-      width: 24px;
-      height: 24px;
-      border-radius: 9px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.10);
-      color: #fff;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      font-size: 16px;
-      line-height: 1;
-      padding: 0;
-      flex: 0 0 auto;
-    }
-
-    .content{
-      height: calc(var(--popup-h) - var(--bar-h));
-      display: grid;
-      place-items: center;
-      padding: 7px 9px;
-      text-align: center;
-      font-size: var(--font);
-      color: rgba(255,255,255,.95);
-      user-select: text;
-      line-height: 1.25;
-    }
-    .popup.minimized .content{ display: none; }
-
-    .popIn{ animation: popIn .72s cubic-bezier(.2,.9,.2,1) both; }
-    @keyframes popIn{
-      from{ opacity: 0; transform: translate(-50%, -50%) scale(.82); }
-      to{ opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .popIn{ animation: none; }
-      .popup{ transition: none !important; }
-    }
-
-    .toolbar{
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: calc(12px + env(safe-area-inset-bottom));
-      z-index: 10000;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .toolbar button{
-      pointer-events: auto;
-      min-height: 44px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(15,23,42,.65);
-      color: #fff;
-      font-weight: 800;
-      backdrop-filter: blur(10px);
-      cursor: pointer;
-    }
-  </style>
+@media (max-width: 768px) {
+  .popup {
+    font-size: 12px;
+    padding: 12px 16px;
+    max-width: 70vw;
+  }
+  
+  .controls button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+</style>
 </head>
-
 <body>
-  <div id="layer"></div>
 
-  <div class="toolbar">
-    <button id="replay">重播</button>
-    <button id="clear">清空</button>
-  </div>
+<canvas id="canvas"></canvas>
+<div class="controls">
+  <button onclick="startAnimation()">开始</button>
+  <button onclick="clearAll()">清空</button>
+</div>
 
-  <script>
-    const layer = document.getElementById('layer');
-    const params = new URLSearchParams(location.search);
+<script>
+  // 200条不重复的简短表白和关心语句
+const messages = [
+  "我想你了", "我喜欢你", "我爱你", "想你", "爱你",
+  "喜欢你", "超喜欢你", "好爱你", "真的想你", "抱抱你",
+  "亲亲你", "想见你", "想陪你", "陪着你", "晚安",
+  "早安", "想你啦", "爱你哦", "喜欢你呀", "你真好",
+  
+  // 关心身体健康
+  "记得吃饭", "记得喝水", "记得休息", "别熬夜", "早点睡",
+  "照顾好自己", "注意身体", "好好的", "多喝热水", "按时吃饭",
+  "别饿着自己", "累了就休息", "困了就睡", "别太累", "注意保暖",
+  "天冷加衣服", "别着凉了", "多穿点", "出门带伞", "路上小心",
+  
+  // 关心情绪
+  "你辛苦了", "你累吗", "你还好吗", "你开心吗", "你想我吗",
+  "我在这儿", "我一直在", "我在等你", "我在爱你", "我好想你啊",
+  "别怕", "别哭", "别难过", "别生气", "我在呢",
+  "有我在", "别担心", "会好的", "别着急", "慢慢来",
+  "你很棒", "你可以的", "相信你", "加油", "我支持你",
+  
+  // 温柔表白
+  "你最好", "你最棒", "好想抱你", "好想亲你", "我在想你",
+  "一直想你", "天天想你", "时时想你", "刻刻想你", "你是我的宝贝",
+  "你是我的心肝", "你是我的全部", "你让我心动", "你让我着迷", "和你在一起真好",
+  "有你真幸福", "遇见你真好", "认识你真好", "爱上你了", "想牵你的手",
+  
+  // 关心日常
+  "吃了吗", "睡了吗", "在忙吗", "在干嘛", "想和你聊天",
+  "今天开心吗", "今天累吗", "工作顺利吗", "一切都好吗", "有没有想我",
+  "记得想我", "记得爱我", "想我了就说", "需要我就在", "随时找我",
+  
+  // 深情告白
+  "想抱紧你", "想吻你", "想和你在一起", "想永远陪你", "你笑起来真好看",
+  "你的眼睛真美", "你真可爱", "你真温柔", "你真美", "你是最好的",
+  "你是最美的", "你是独一无二的", "你是我的唯一", "只爱你", "每天都想你",
+  
+  // 贴心关怀
+  "别太拼了", "别太辛苦", "要爱惜自己", "身体最重要", "健康第一",
+  "心情不好就说", "难过就找我", "开心告诉我", "分享给我", "我想听",
+  "我会听你说", "我会陪着你", "我会等你", "我会守护你", "我会爱你",
+  
+  // 甜蜜情话
+  "分分秒秒想你", "无时无刻不想你", "做梦都梦到你", "满脑子都是你", "我好想你呀",
+  "我真的爱你", "我永远爱你", "我只爱你", "我的心里只有你", "想抱你",
+  "想亲你", "想你想到睡不着", "想你想到心疼", "想你想得厉害", "你让我心跳加速",
+  
+  // 温暖陪伴
+  "你让我脸红", "你让我害羞", "听到你就开心", "看到你就开心", "你是我的小宝贝",
+  "你是我的心上人", "你是我的小可爱", "你是我的小甜心", "你是我的小公主", "想把你藏起来",
+  "想把你抱紧", "想把你宠坏", "想把你捧在手心", "想把你放心上", "你对我真好",
+  
+  // 日常关心
+  "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你真幸福", "我的眼里心里都是你",
+  "我满脑子都是你", "我一天到晚想你", "你笑起来像阳光", "你的声音好听", "我想永远和你在一起",
+  "我想一直陪你", "我想守护你一辈子", "我想爱你到永远", "我想和你到老", "你是我见过最好的",
+  
+  // 体贴入微
+  "你是我最珍贵的", "你是我最重要的", "想牵你手", "想摸你头", "你的每句话我都记得",
+  "你的笑容我都喜欢", "你的一切我都爱", "我会一直陪你", "我会一直爱你", "你开心我就开心",
+  "你快乐我就快乐", "你幸福我就幸福", "遇见你是幸运", "认识你是福气", "你的笑容治愈我",
+  
+  // 深情守护
+  "你的声音温暖我", "你的存在感动我", "我想给你全世界", "我想给你最好的", "你是我的动力",
+  "你是我的希望", "你是我的光", "你是我的温暖", "你是我的依靠", "想和你看日出",
+  "想和你看日落", "想和你看星星", "想和你看月亮", "想和你看雪", "想和你吃饭",
+  
+  // 温柔承诺
+  "想和你散步", "想和你旅行", "想和你做梦", "想和你变老", "我会保护你",
+  "我会心疼你", "我会理解你", "我会支持你", "我会信任你", "你累了就靠我",
+  "你难过就找我", "你需要我就在", "宝贝我爱你", "宝贝想你了", "宝贝晚安",
+  
+  // 甜蜜昵称
+  "宝贝早安", "宝贝抱抱", "超级喜欢你", "超级爱你", "超级想你",
+  "真的好喜欢你", "真的好爱你", "你是我的小心肝", "你是我的小月亮", "你是我的小星星",
+  "你是我的小太阳", "你是我的小天使", "今天也想你", "今天也爱你", "今天也喜欢你",
+  
+  // 最后的爱意
+  "想你呀", "爱你呀", "喜欢你呀", "抱你呀", "亲你呀",
+  "想死你了", "爱死你了", "永远爱你", "一生爱你", "此生只爱你"
+];
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
-    const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
 
-    const totalPopups = 200;
+window.addEventListener('resize', () => {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+});
 
-    const heartPopups = Math.min(
-      totalPopups,
-      Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 120)))
-    );
+let popupIndex = 0;
+let animationId = null;
+let usedMessages = [];
 
-    const defaultSpeed = isMobile ? 120 : 95;
-    const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
+// 爱心路径点计算
+function getHeartPoints(centerX, centerY, size) {
+  const points = [];
+  const steps = 200; // 200个点组成爱心
+  
+  for (let i = 0; i < steps; i++) {
+    const t = (i / steps) * Math.PI * 2;
+    const x = size * 16 * Math.pow(Math.sin(t), 3);
+    const y = -size * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    
+    points.push({
+      x: centerX + x,
+      y: centerY + y
+    });
+  }
+  
+  return points;
+}
 
-    const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
-    const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
-    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 3400 : 2400)));
-    const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 950 : 1050)));
-    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 22 : 16)));
+// 获取唯一消息
+function getUniqueMessage() {
+  if (usedMessages.length >= messages.length) {
+    usedMessages = [];
+  }
+  
+  let availableMessages = messages.filter(msg => !usedMessages.includes(msg));
+  let message = availableMessages[Math.floor(Math.random() * availableMessages.length)];
+  usedMessages.push(message);
+  
+  return message;
+}
 
-    const topReserve = Math.max(0, Number(params.get('top') || 0));
-    const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
-
-    const TAU = Math.PI * 2;
-
-    function rand(a, b) { return a + Math.random() * (b - a); }
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-    function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.trunc(v))); }
-
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
+// 创建弹窗
+function createPopup(x, y, message) {
+  const popup = document.createElement('div');
+  popup.className = 'popup';
+  popup.innerHTML = `
+    ${message}
+    <button class="close" onclick="this.parentElement.remove()">×</button>
+  `;
+  
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  
+  document.body.appendChild(popup);
+  
+  setTimeout(() => popup.classList.add('show'), 10);
+  
+  // 拖拽功能
+  let isDragging = false;
+  let currentX, currentY, initialX, initialY;
+  
+  popup.addEventListener('mousedown', dragStart);
+  popup.addEventListener('touchstart', dragStart);
+  
+  function dragStart(e) {
+    if (e.target.classList.contains('close')) return;
+    
+    isDragging = true;
+    
+    if (e.type === 'touchstart') {
+      initialX = e.touches[0].clientX - popup.offsetLeft;
+      initialY = e.touches[0].clientY - popup.offsetTop;
+    } else {
+      initialX = e.clientX - popup.offsetLeft;
+      initialY = e.clientY - popup.offsetTop;
     }
-
-    function gcd(a, b) {
-      a = Math.abs(a); b = Math.abs(b);
-      while (b) { const t = a % b; a = b; b = t; }
-      return a || 1;
+    
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    document.addEventListener('touchend', dragEnd);
+  }
+  
+  function drag(e) {
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    
+    if (e.type === 'touchmove') {
+      currentX = e.touches[0].clientX - initialX;
+      currentY = e.touches[0].clientY - initialY;
+    } else {
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
     }
+    
+    popup.style.left = currentX + 'px';
+    popup.style.top = currentY + 'px';
+  }
+  
+  function dragEnd() {
+    isDragging = false;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('touchmove', drag);
+    document.removeEventListener('mouseup', dragEnd);
+    document.removeEventListener('touchend', dragEnd);
+  }
+}
 
-    function spreadOrder(n) {
-      if (n <= 1) return [0];
-      let step = Math.floor(n / 2);
-      if (step % 2 === 0) step += 1;
-      while (gcd(step, n) !== 1) step += 2;
-
-      const out = new Array(n);
-      let idx = 0;
-      for (let i = 0; i < n; i++) {
-        out[i] = idx;
-        idx = (idx + step) % n;
-      }
-      return out;抱歉，模型上游服务不稳定，请稍后再试或切换模型。<think>
-
-用户说我给的代码是空的，让我检查一下。看起来我之前尝试创建文件，但可能被截断了。用户很生气，我需要直接在回复中给出完整的HTML代码，而不是使用文件创建工具。
-
-我需要把完整的HTML代码直接粘贴在回复中，确保代码完整且可以直接复制使用。
-
-</think>
-
-非常抱歉！我直接给你完整的代码，你可以直接复制使用：
-
-```html
-<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>爱心弹窗（简短表白短句版）</title>
-
-  <style>
-    :root { color-scheme: dark; }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      -webkit-tap-highlight-color: transparent;}
-
-    body{
-      min-height: 100dvh;
-      background:
-        radial-gradient(900px 600px at 20% 10%, #2a1030 0%, transparent 55%),
-        radial-gradient(900px 600px at 80% 20%, #0b2a3a 0%, transparent 55%),
-        #05060a;
-      color: #fff;
-    }
-
-    #layer{
-      position: fixed;
-      inset: 0;
-      height: 100dvh;
-      z-index: 9999;
-    }
-
-    :root{
-      --popup-w: clamp(110px, 28vw, 156px);
-      --popup-h: clamp(72px, 9.6vh, 104px);
-      --bar-h: 26px;
-      --radius: 12px;
-      --font: clamp(10px, 1.14vh, 12px);
-    }
-
-    @media (min-width: 900px){
-      :root{
-        --popup-w: 188px;
-        --popup-h: 114px;
-        --bar-h: 32px;
-        --radius: 14px;
-        --font: 13.5px;
-      }
-    }
-
-    .popup{
-      position: fixed;
-      width: var(--popup-w);
-      height: var(--popup-h);
-      border-radius: var(--radius);
-      background: rgba(18,20,28,.62);
-      border: 2px solid rgba(255,255,255,.18);
-      box-shadow: 0 18px 55px rgba(0,0,0,.45);
-      overflow: hidden;
-      transform: translate(-50%, -50%);
-      touch-action: manipulation;
-      user-select: none;
-    }
-
-    .popup.minimized{
-      height: var(--bar-h);
-      background: rgba(18,20,28,.78);
-    }
-
-    .popup.dragging{ will-change: left, top, transform; }
-
-    .popup.focused{
-      outline: 2px solid rgba(255,255,255,.16);
-      box-shadow: 0 22px 70px rgba(0,0,0,.55);
-    }
-
-    .bar{
-      height: var(--bar-h);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 8px 0 10px;
-      background: rgba(255,255,255,.06);
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      font-size: 12px;
-      color: rgba(255,255,255,.85);
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-    }
-
-    .popup.minimized .bar{ cursor: pointer; }
-    .bar:active{ cursor: grabbing; }
-
-    .hint{
-      margin-left: auto;
-      font-size: 11px;
-      opacity: .72;
-      display: none;
-      white-space: nowrap;
-    }.popup.minimized .hint{ display: block; }
-
-    .close{
-      width: 24px;
-      height: 24px;
-      border-radius: 9px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.10);
-      color: #fff;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      font-size: 16px;
-      line-height: 1;
-      padding: 0;
-      flex:0 0 auto;
-    }
-
-    .content{
-      height: calc(var(--popup-h) - var(--bar-h));
-      display: grid;
-      place-items: center;
-      padding: 7px 9px;
-      text-align: center;
-      font-size: var(--font);
-      color: rgba(255,255,255,.95);
-      user-select: text;
-      line-height: 1.25;
-    }
-    .popup.minimized .content{ display: none; }
-
-    .popIn{ animation: popIn .72s cubic-bezier(.2,.9,.2,1) both; }
-    @keyframes popIn{
-      from{ opacity: 0; transform: translate(-50%, -50%) scale(.82); }
-      to{ opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .popIn{ animation: none; }
-      .popup{ transition: none !important; }
-    }
-
-    .toolbar{
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: calc(12px + env(safe-area-inset-bottom));
-      z-index: 10000;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .toolbar button{
-      pointer-events: auto;
-      min-height: 44px;
-      padding: 10px 14px;
-      border-radius:999px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(15,23,42,.65);
-      color: #fff;
-      font-weight: 800;
-      backdrop-filter: blur(10px);}
-  </style>
-</head>
-
-<body>
-  <div id="layer"></div>
-
-  <div class="toolbar">
-    <button id="replay">重播</button>
-    <button id="clear">清空</button>
-  </div>
-
-  <script>
-    const layer = document.getElementById('layer');
-    const params = new URLSearchParams(location.search);
-
-    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
-    const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
-
-    const totalPopups = 200;
-
-    const heartPopups = Math.min(
-      totalPopups,
-      Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 120)))
-    );
-
-    const defaultSpeed = isMobile ? 120 : 95;
-    const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
-
-    const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
-    const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
-    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 3400 : 2400)));
-    const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 950 : 1050)));
-    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 22 : 16)));
-
-    const topReserve = Math.max(0, Number(params.get('top') || 0));
-    const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
-
-    const TAU = Math.PI * 2;
-
-    function rand(a, b) { return a + Math.random() * (b - a); }
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-    function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.trunc(v))); }
-
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    function gcd(a, b) {
-      a = Math.abs(a); b = Math.abs(b);
-      while (b) { const t = a % b; a = b; b = t; }
-      return a ||1;
-    }
-
-    function spreadOrder(n) {
-      if (n <= 1) return [0];
-      let step = Math.floor(n / 2);
-      if (step % 2 === 0) step += 1;
-      while (gcd(step, n) !== 1) step += 2;
-
-      const out = new Array(n);
-      let idx = 0;
-      for (let i = 0; i < n; i++) {
-        out[i] = idx;
-        idx = (idx + step) % n;
-      }
-      return out;
-    }
-
-    // 生成200条简短表白短句（不重复）
-    function generateUniqueMessages(total, name) {
-      const shortMessages = [
-        "我想你了", "我好想你", "我喜欢你", "我爱你", "想你",
-        "爱你", "喜欢你", "超喜欢你", "好爱你", "真的想你",
-        "抱抱你", "亲亲你", "想见你", "想陪你", "陪着你",
-        "晚安", "早安", "想你啦", "爱你哦", "喜欢你呀",
-        "你真好", "你最好", "你最棒", "好想抱你", "好想亲你",
-        "我在想你", "一直想你", "天天想你", "时时想你", "刻刻想你",
-        "你是我的宝贝", "你是我的心肝", "你是我的全部", "你让我心动", "你让我着迷",
-        "和你在一起真好", "有你真幸福", "遇见你真好", "认识你真好", "爱上你了",
-        "想牵你的手", "想抱紧你", "想吻你", "想和你在一起", "想永远陪你",
-        "你笑起来真好看", "你的眼睛真美", "你真可爱", "你真温柔", "你真美",
-        "记得想我", "记得爱我", "记得吃饭", "记得喝水", "记得休息",
-        "别熬夜", "早点睡", "照顾好自己", "注意身体", "好好的",
-        "我会等你", "我会陪你", "我会守护你", "我会爱你", "我会宠你",
-        "你辛苦了", "你累吗", "你还好吗", "你开心吗", "你想我吗",
-        "我在这儿", "我一直在", "我在等你", "我在爱你", "我好想你啊",
-        "别怕", "别哭", "别难过", "别生气", "我在呢",
-        "你是最好的", "你是最美的", "你是独一无二的", "你是我的唯一", "只爱你",
-        "每天都想你", "分分秒秒想你", "无时无刻不想你", "做梦都梦到你", "满脑子都是你",
-        "你在干嘛", "你吃了吗", "你睡了吗", "你忙吗", "想和你聊天",
-        "我好想你呀", "我真的爱你", "我永远爱你", "我只爱你", "我的心里只有你",
-        "想抱你", "想亲你", "想你想到睡不着", "想你想到心疼", "想你想得厉害",
-        "你让我心跳加速", "你让我脸红", "你让我害羞", "听到你就开心", "看到你就开心",
-        "你是我的小宝贝", "你是我的心上人", "你是我的小可爱", "你是我的小甜心", "你是我的小公主",
-        "想把你藏起来", "想把你抱紧", "想把你宠坏", "想把你捧在手心", "想把你放心上",
-        "你对我真好", "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你真幸福",
-        "我的眼里心里都是你", "我满脑子都是你", "我一天到晚想你", "你笑起来像阳光", "你的声音好听",
-        "我想永远和你在一起", "我想一直陪你", "我想守护你一辈子", "我想爱你到永远", "我想和你到老",
-        "你是我见过最好的", "你是我最珍贵的", "你是我最重要的", "想牵你手", "想摸你头",
-        "你的每句话我都记得", "你的笑容我都喜欢", "你的一切我都爱", "我会一直陪你", "我会一直爱你",
-        "你开心我就开心", "你快乐我就快乐", "你幸福我就幸福", "遇见你是幸运", "认识你是福气",
-        "你的笑容治愈我", "你的声音温暖我", "你的存在感动我", "我想给你全世界", "我想给你最好的",
-        "你是我的动力", "你是我的希望", "你是我的光", "你是我的温暖", "你是我的依靠",
-        "想和你看日出", "想和你看日落", "想和你看星星", "想和你看月亮", "想和你看雪",
-        "想和你吃饭", "想和你散步", "想和你旅行", "想和你做梦", "想和你变老",
-        "我会保护你", "我会心疼你", "我会理解你", "我会支持你", "我会信任你",
-        "你累了就靠我", "你难过就找我", "你开心告诉我", "你想我就说", "你需要我就在",
-        "宝贝我爱你", "宝贝想你了", "宝贝晚安", "宝贝早安", "宝贝抱抱",
-        "超级喜欢你", "超级爱你", "超级想你", "真的好喜欢你", "真的好爱你",
-        "你是我的小心肝", "你是我的小月亮", "你是我的小星星", "你是我的小太阳", "你是我的小天使",
-        "今天也想你", "今天也爱你", "今天也喜欢你", "想你呀", "爱你呀"
-      ];
-
-      // 打乱顺序让每次都不一样
-      shuffle(shortMessages);
-      // 如果不够200条，继续补充
-      while (shortMessages.length < total) {
-        const num = shortMessages.length + 1;
-        shortMessages.push(`第${num}句：我爱你`);
-      }
+// 开始动画
+function startAnimation() {
+  clearAll();
+  popupIndex = 0;
+  usedMessages = [];
+  
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const size = Math.min(width, height) / 40; // 适应屏幕大小
+  
+  const heartPoints = getHeartPoints(centerX, centerY, size);
+  
+  function showNextPopup() {
+    if (popupIndex < heartPoints.length) {
+      const point = heartPoints[popupIndex];
+      const message = getUniqueMessage();
       
-      return shortMessages.slice(0, total);
+      createPopup(point.x, point.y, message);
+      
+      popupIndex++;
+      animationId = setTimeout(showNextPopup, 200); // 每200ms出现一个，速度适中
     }
+  }
+  
+  showNextPopup();
+}
 
-    function heartPoint(t) {
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-      return { x, y };
-    }
+// 清空所有弹窗
+function clearAll() {
+  if (animationId) {
+    clearTimeout(animationId);
+    animationId = null;
+  }
+  
+  const popups = document.querySelectorAll('.popup');
+  popups.forEach(popup => popup.remove());
+  
+  popupIndex = 0;
+  usedMessages = [];
+}
 
-    function heartDeriv(t) {
-      const s = Math.sin(t), c = Math.cos(t);
-      const dx = 48 * s * s * c;
-      const dy = -13 * Math.sin(t) + 10 * Math.sin(2 * t) + 6 * Math.sin(3 * t) + 4 * Math.sin(4 * t);
-      return { dx, dy };
-    }
+// 页面加载完成后自动开始
+window.addEventListener('load', () => {
+  setTimeout(startAnimation, 500);
+});
+</script>
 
-    let cachedLUT = null;
-    function getHeartLUT(samples = 3200) {
-      if (cachedLUT && cachedLUT.samples === samples) return cachedLUT;
-
-      const points = new Array(samples + 1);
-      const ts = new Float32Array(samples + 1);
-      const lengths = new Float32Array(samples + 1);
-
-      let total = 0;
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-
-      let prev = null;
-      for (let i = 0; i <= samples; i++) {
-        const t = (i / samples) * TAU;
-        const p = heartPoint(t);
-
-        points[i] = p;
-        ts[i] = t;
-
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-
-        if (prev) total += Math.hypot(p.x - prev.x, p.y - prev.y);
-        lengths[i] = total;
-        prev = p;
-      }
-
-      cachedLUT = {
-        samples,
-        points,
-        ts,
-        lengths,
-        total,
-        minX, maxX, minY, maxY,
-        midX: (minX + maxX) / 2,
-        midY: (minY + maxY) / 2,
-        width: (maxX - minX),
-        height: (maxY - minY),};
-      return cachedLUT;
-    }
-
-    function sampleHeartByArc(lut, count, phase = 0) {
-      const out = new Array(count);
-      const step = lut.total / count;
-      let seg = 0;
-
-      for (let i = 0; i < count; i++) {
-        const d = (i + phase) * step;
-
-        while (seg < lut.samples - 1 && lut.lengths[seg + 1] < d) seg++;
-
-        constd0 = lut.lengths[seg];
-        const d1 = lut.lengths[seg + 1];
-        const u = d1 === d0 ? 0 : (d - d0) / (d1 - d0);
-
-        const p0 = lut.points[seg];
-        const p1 = lut.points[seg + 1];
-        const t0 = lut.ts[seg];
-        const t1 = lut.ts[seg + 1];
-
-        out[i] = {
-          x: p0.x + (p1.x - p0.x) * u,
-          y: p0.y + (p1.y - p0.y) * u,
-          t: t0 + (t1 - t0) * u
-        };
-      }
-      return out;
-    }
-
-    function borderColor() {
-      const hue = Math.floor(rand(0, 360));
-      return `hsl(${hue} 92% 65%)`;
-    }
-
-    function ringOffsetsFromCount(rings) {
-      if (rings <= 1) return [0];
-      const out = [];
-      const mid = (rings - 1) / 2;
-      const step = isMobile ? 10 : 12;
-      for (let i = 0; i < rings; i++) out.push(Math.round((i - mid) * step));
-      return out;
-    }
-
-    let buildToken = 0;
-    let timers = [];
-    let scatteredOnce = false;
-
-    let topZ = 1000;
-    function bringToFront(el) {
-      topZ = Math.max(topZ + 1, Number(el.style.zIndex || 0) + 1);
-      el.style.zIndex = String(topZ);
-      el.classList.add('focused');
-      setTimeout(() => el.classList.remove('focused'), 350);
-    }
-
-    function schedule(token, fn, ms) {
-      const id = setTimeout(() => {
-        if (token !== buildToken) return;
-        fn();
-      }, ms);
-      timers.push(id);
-    }
-
-    function resetScene() {
-      for (const id of timers) clearTimeout(id);
-      timers = [];
-      layer.replaceChildren();
-      scatteredOnce = false;}
-
-    function setMinimized(el, on) {
-      el.classList.toggle('minimized', !!on);
-    }
-
-    function scatterPopups(token, popups,durationMs) {
-      const margin = 10;
-
-      for (const el of popups) {
-        if (!el || !el.isConnected) continue;
-
-        const rect = el.getBoundingClientRect();
-        const halfW = rect.width / 2;
-        const halfH = rect.height / 2;
-
-        const x = rand(halfW + margin, innerWidth - halfW - margin);
-        const y = rand(halfH + margin, innerHeight - halfH - margin);
-        const rot = rand(-12, 12);
-
-        el.style.transition =
-          `left ${durationMs}ms cubic-bezier(.2,.9,.2,1),` +
-          `top ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
-          `transform ${durationMs}ms cubic-bezier(.2,.9,.2,1)`;
-
-        requestAnimationFrame(() => {
-          if (token !== buildToken || !el.isConnected) return;
-          el.style.left = x + 'px';
-          el.style.top = y + 'px';
-          el.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;});
-      }
-
-      schedule(token, () => {
-        for (const el of popups) {
-          if (!el || !el.isConnected) continue;
-          el.style.transition = '';}
-      }, durationMs + 40);
-    }
-
-    function makePopup({ cx, cy, text, z, minimized }) {
-      const el = document.createElement('div');
-      el.className = 'popup popIn';
-      el.style.left = cx + 'px';
-      el.style.top = cy + 'px';
-      el.style.zIndex = String(z);
-      el.style.borderColor = borderColor();
-      topZ = Math.max(topZ, z);
-
-      el.innerHTML = `
-        <div class="bar">
-          <span class="title">♡ ${nickname}</span>
-          <span class="hint" aria-hidden="true">点开查看</span>
-          <button class="close" aria-label="关闭">×</button>
-       
+</body>
+</html>
