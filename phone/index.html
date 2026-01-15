@@ -2,571 +2,511 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<!-- 强制禁止缩放，锁定视口 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>给宝宝的小情书(◕ᴗ◕✿)</title>
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-  position: relative;
-}
-
-#heartCanvas {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.popup-card {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  border: 2px solid;
-  border-radius: 20px;
-  padding: 12px 16px;
-  padding-right: 40px;
-  color: white;
-  font-size: 13px;
-  line-height: 1.4;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  transform: scale(0.3);
-  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 10;
-  max-width: 200px;
-  word-wrap: break-word;
-  cursor: move;
-  user-select: none;
-}
-
-.popup-card.show {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.popup-card.scattered {
-  transition: all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.popup-card .close-btn {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  background: #ff4757;
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 16px;
-  line-height: 24px;
-  text-align: center;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
-  transition: all 0.2s;
-  z-index: 2;
-}
-
-.popup-card .close-btn:active {
-  transform: translateY(-50%) scale(0.9);
-}
-
-.popup-card .heart-icon {
-  display: inline-block;
-  margin-right: 6px;
-  color: #ff6b9d;
-  pointer-events: none;
-}
-
-.popup-card .text {
-  cursor: pointer;
-  position: relative;
-  z-index: 1;
-}
-
-.popup-card .text:active {
-  opacity: 0.7;
-}
-
-.controls {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
-  z-index: 100;
-}
-
-.controls button {
-  padding: 14px 32px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 30px;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s;
-}
-
-.controls button:active {
-  transform: scale(0.95);
-}
-
-.toast {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 14px;
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-.toast.show {
-  opacity: 1;
-}
-
-@media (max-width: 768px) {
-  .popup-card {
-    font-size: 12px;
-    padding: 10px 14px;
-    padding-right: 38px;
-    max-width: 160px;
-    border-radius: 16px;
-  }
+  /* --- 1. 基础重置 --- */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   
-  .popup-card .close-btn {
-    width: 22px;
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* 禁止滚动 */
+    background: radial-gradient(circle at center, #1a1c29 0%, #000000 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    position: fixed; /* 锁定屏幕 */
+    inset: 0;
+  }
+
+  /* --- 2. 烟花层 --- */
+  #fireworksCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* --- 3. 弹窗卡片 (手机版优化) --- */
+  .window-card {
+    position: absolute; /* 改为 absolute 配合容器 */
+    width: 100px; /* 稍微调小一点适应手机 */
+    background: rgba(20, 20, 25, 0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid #fff; 
+    border-radius: 8px;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.1);
+    transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 解决手机点击穿透问题 */
+    touch-action: none; 
+  }
+
+  /* 出现动画类 */
+  .window-card.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .card-header {
     height: 22px;
-    font-size: 14px;
-    line-height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
   
-  .controls button {
-    padding: 12px 28px;
-    font-size: 15px;
+  .close-btn { font-size: 16px; width: 20px; text-align: center; color: #ccc; }
+
+  .card-body {
+    padding: 8px 6px;
+    font-size: 10px; /* 字体改小一点防止溢出 */
+    color: #fff;
+    line-height: 1.4;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
   }
-}
+
+  /* 激活状态 */
+  .window-card.active {
+    z-index: 99999 !important;
+    transform: translate(-50%, -50%) scale(1.5) !important;
+    background: rgba(0, 0, 0, 0.95);
+    border-width: 2px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  }
+
+  /* --- 4. 底部控制区 (重构) --- */
+  .controls-container {
+    position: fixed;
+    bottom: 30px; /* 距离底部 */
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    z-index: 200000;
+    pointer-events: none; /* 让容器不挡手，只让按钮挡手 */
+  }
+
+  /* 展开的菜单栏 (横向排列) */
+  .menu-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    pointer-events: none; /* 隐藏时不可点 */
+  }
+
+  .controls-container.open .menu-bar {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  /* 霓虹按钮样式 (参考你的截图) */
+  .neon-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1.5px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    pointer-events: auto;
+  }
+  
+  .neon-btn:active { transform: scale(0.9); }
+  .icon { font-size: 18px; margin-bottom: 2px; }
+
+  /* 颜色定义 */
+  .btn-start { border-color: #00ffcc; color: #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.2); }
+  .btn-scatter { border-color: #ffcc00; color: #ffcc00; box-shadow: 0 0 8px rgba(255,204,0,0.2); }
+  .btn-clear { border-color: #ff3366; color: #ff3366; box-shadow: 0 0 8px rgba(255,51,102,0.2); }
+
+  /* 主爱心开关 */
+  .toggle-heart {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #fc6767, #ec008c);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    box-shadow: 0 5px 20px rgba(236, 0, 140, 0.5);
+    border: 2px solid rgba(255,255,255,0.8);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.3s;
+    animation: pulse 2s infinite;
+  }
+  
+  .controls-container.open .toggle-heart {
+    transform: rotate(45deg); /* 变成关闭X */
+    background: #333;
+    border-color: #666;
+    animation: none;
+    box-shadow: none;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
 </style>
 </head>
 <body>
 
-<canvas id="heartCanvas"></canvas>
+<canvas id="fireworksCanvas"></canvas>
 
-<div class="controls">
-  <button onclick="startAnimation()">开始</button>
-  <button onclick="clearAll()">清空</button>
+<!-- 音乐：必须确保文件名正确 -->
+<audio id="bgMusic" loop>
+  <source src="岳燃-慢慢.mp3" type="audio/mpeg">
+  <!-- 备用链接，防止本地没文件时不响 -->
+  <source src="https://music.163.com/song/media/outer/url?id=1901371647.mp3" type="audio/mpeg">
+</audio>
+
+<!-- 底部控制组件 -->
+<div class="controls-container" id="controls">
+  <!-- 展开的三个按钮 -->
+  <div class="menu-bar">
+    <div class="neon-btn btn-start" onclick="startShow()">
+      <span class="icon">▶</span>
+      <span>开始</span>
+    </div>
+    <div class="neon-btn btn-scatter" onclick="scatterCards()">
+      <span class="icon">✨</span>
+      <span>散落</span>
+    </div>
+    <div class="neon-btn btn-clear" onclick="clearAll()">
+      <span class="icon">×</span>
+      <span>清除</span>
+    </div>
+  </div>
+  
+  <!-- 主爱心按钮 -->
+  <div class="toggle-heart" onclick="toggleMenu()">♥</div>
 </div>
 
-<div id="toast" class="toast"></div>
-
 <script>
-// 200条不重复的表白和关心语句
-const messages = [
-  "我想你了", "我喜欢你", "我爱你", "想你", "爱你",
-  "喜欢你", "超喜欢你", "好爱你", "真的想你", "抱抱你",
-  "亲亲你", "想见你", "想陪你", "陪着你", "晚安",
-  "早安", "想你啦", "爱你哦", "喜欢你呀", "你真好",
-  
-  "记得吃饭", "记得喝水", "记得休息", "别熬夜", "早点睡",
-  "照顾好自己", "注意身体", "好好的", "多喝热水", "按时吃饭",
-  "别饿着自己", "累了就休息", "困了就睡", "别太累", "注意保暖",
-  "天冷加衣服", "别着凉了", "多穿点", "出门带伞", "路上小心",
-  
-  "你辛苦了", "你累吗", "你还好吗", "你开心吗", "你想我吗",
-  "我在这儿", "我一直在", "我在等你", "我在爱你", "我好想你啊",
-  "别怕", "别哭", "别难过", "别生气", "我在呢",
-  "有我在", "别担心", "会好的", "别着急", "慢慢来",
-  "你很棒", "你可以的", "相信你", "加油", "我支持你",
-  
-  "你最好", "你最棒", "好想抱你", "好想亲你", "我在想你",
-  "一直想你", "天天想你", "时时想你", "刻刻想你", "你是我的宝贝",
-  "你是我的心肝", "你是我的全部", "你让我心动", "你让我着迷", "和你在一起真好",
-  "有你真幸福", "遇见你真好", "认识你真好", "爱上你了", "想牵你的手",
-  
-  "吃了吗", "睡了吗", "在忙吗", "在干嘛", "想和你聊天",
-  "今天开心吗", "今天累吗", "工作顺利吗", "一切都好吗", "有没有想我",
-  "记得想我", "记得爱我", "想我了就说", "需要我就在", "随时找我",
-  
-  "想抱紧你", "想吻你", "想和你在一起", "想永远陪你", "你笑起来真好看",
-  "你的眼睛真美", "你真可爱", "你真温柔", "你真美", "你是最好的",
-  "你是最美的", "你是独一无二的", "你是我的唯一", "只爱你", "每天都想你",
-  
-  "别太拼了", "别太辛苦", "要爱惜自己", "身体最重要", "健康第一",
-  "心情不好就说", "难过就找我", "开心告诉我", "分享给我", "我想听",
-  "我会听你说", "我会陪着你", "我会等你", "我会守护你", "我会爱你",
-  
-  "分分秒秒想你", "无时无刻不想你", "做梦都梦到你", "满脑子都是你", "我好想你呀",
-  "我真的爱你", "我永远爱你", "我只爱你", "我的心里只有你", "想抱你",
-  "想亲你", "想你想到睡不着", "想你想到心疼", "想你想得厉害", "你让我心跳加速",
-  
-  "你让我脸红", "你让我害羞", "听到你就开心", "看到你就开心", "你是我的小宝贝",
-  "你是我的心上人", "你是我的小可爱", "你是我的小甜心", "你是我的小公主", "想把你藏起来",
-  "想把你抱紧", "想把你宠坏", "想把你捧在手心", "想把你放心上", "你对我真好",
-  
-  "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你真幸福", "我的眼里心里都是你",
-  "我满脑子都是你", "我一天到晚想你", "你笑起来像阳光", "你的声音好听", "我想永远和你在一起",
-  "我想一直陪你", "我想守护你一辈子", "我想爱你到永远", "我想和你到老", "你是我见过最好的",
-  
-  "你是我最珍贵的", "你是我最重要的", "想牵你手", "想摸你头", "你的每句话我都记得",
-  "你的笑容我都喜欢", "你的一切我都爱", "我会一直陪你", "我会一直爱你", "你开心我就开心",
-  "你快乐我就快乐", "你幸福我就幸福", "遇见你是幸运", "认识你是福气", "你的笑容治愈我",
-  
-  "你的声音温暖我", "你的存在感动我", "我想给你全世界", "我想给你最好的", "你是我的动力",
-  "你是我的希望", "你是我的光", "你是我的温暖", "你是我的依靠", "想和你看日出",
-  "想和你看日落", "想和你看星星", "想和你看月亮", "想和你看雪", "想和你吃饭"
+// --- 1. 文案数据 ---
+const textData = [
+  "慢慢的习惯身边有你的温暖", "晚安，梦里见", "今天有没有一点点想我", "天气变凉了，记得加衣", "不仅要早睡，还要睡得香",
+  "想和你分享今天发生的趣事", "你现在的表情是不是很可爱", "刚才看到一个背影好像你", "你的名字是我最短的情诗",
+  "别总喝冰的，对胃不好", "记得按时吃饭，不许挑食", "想钻进你的屏幕里", "如果你在就好了", "好想捏捏你的脸",
+  "今晚的月亮很美，像你一样", "收到你的消息会偷笑", "别熬夜，我会心疼", "你的声音真的很好听", "想做你的偏爱和例外",
+  "我们在慢慢变好，对吗", "任何时候都可以找我", "我一直在你身后", "别皱眉，会变丑哦", "想和你去吹晚风",
+  "想和你去吃火锅", "想和你去看海", "想和你去迪士尼", "你是我藏不住的欢喜", "我的猫想你了，其实我也...",
+  "能不能分一点时间给我", "遇见你花光了我所有运气", "你是我心动的理由", "想被你坚定地选择", "别让我等太久",
+  "我是不是你最重要的人", "你在我心里位置很特殊", "听到这首歌就想起了你", "你是我不想错过的风景", "好想突然出现在你面前",
+  "给个机会让我照顾你", "你是我每天醒来的动力", "想和你一起虚度光阴", "慢慢来，我等你", "只要是你，晚一点没关系",
+  "在我面前可以做小孩子", "难过的时候记得告诉我", "快乐的时候也记得告诉我", "我想参与你的生活", "你的过去我来不及",
+  "你的未来我想奉陪", "你稍微走一步，剩下的我走", "好想牵你的手", "想感受你手心的温度", "想抱你很久很久",
+  "你是我睡前的最后一个念头", "也是我醒来的第一个念头", "如果我们在一起...", "我不甘心只做朋友", "想越过那条线",
+  "你能不能看我一眼", "我很乖的", "能不能夸夸我", "我想被你哄", "想被你宠坏", "你是我无法抗拒的引力",
+  "想和你一起发呆", "你是我在这个世界的糖", "有点苦的时候就想你", "你是我的解药", "明明没在一起却在吃醋",
+  "看到你和别人说话会不爽", "我是不是太贪心了", "只想把你占为己有", "你是我的私有浪漫", "不许对别人笑",
+  "只准对我好", "霸道一点行不行", "温柔一点行不行", "怎样你才肯喜欢我", "我已经走了九十九步", "最后一步你肯走吗",
+  "好怕最后不是你", "好怕最后没有你", "想把星星摘给你", "但星星没你眼睛亮", "能不能收留我", "我很好养的",
+  "只要一点点爱", "一点点关心", "你是我的星辰大海", "你是我的遥不可及", "你是我的触手可及", "别让我猜了好不好",
+  "直球一点好不好", "想和你过春夏秋冬", "想和你过一日三餐", "你是我的心之所向", "你是我的情有独钟",
+  "我在等你的回响", "如果你回头，我一定在", "一直都在", "不管多久，不管多远", "只要你招手", "我就飞奔而去",
+  "真的好喜欢你", "今天也是元气满满的一天", "照顾好自己", "多喝温水", "出门记得带伞", "注意安全",
+  "到家告诉我", "别太累了", "休息一下吧", "眼睛酸不酸", "坐姿要端正", "不要总是低头玩手机",
+  "想给你做饭", "想给你吹头发", "想给你洗水果", "想接你下班", "想送你回家", "别怕麻烦我",
+  "你的事就是我的事", "随时为你有空", "消息秒回你", "电话秒接", "哪怕不说话", "待在一起就好",
+  "有你在就安心", "你是我的定心丸", "只要你需要，我就出现", "不会让你找不到", "给足你安全感", "不让你猜疑",
+  "有什么直接说", "我们要好好的", "多沟通", "互相包容", "彼此信任", "共同进步", "一起变好",
+  "你是我的动力", "想给你一个家", "每天都要快乐", "烦心事退退退", "好运爆棚", "万事胜意",
+  "平安喜乐", "百毒不侵", "做个快乐的小猪", "无忧无虑", "天真烂漫", "晚安我的宝", "早安我的爱",
+  "午安休息好", "时刻把你放心上", "爱你哦", "别老是看电脑", "记得滴眼药水", "指甲该剪啦",
+  "房间通风了吗", "多晒晒太阳", "不要为了减肥不吃", "健康最美", "我喜欢肉肉的你", "不许说自己胖",
+  "今天想吃啥", "我给你点外卖", "出门记得带钥匙", "身份证带了吗", "手机有电吗", "带充电宝",
+  "别去危险的地方", "不要相信陌生人", "保护好自己", "我会担心的", "别让我找不到你", "今天有没有想我",
+  "我好想你呀", "每时每刻都在想", "连呼吸都在想", "做梦也想你", "我的世界不能没你", "你是我的全部",
+  "下辈子也要在一起", "想给你个惊喜", "想看你惊喜的表情", "想把你宠上天", "你就是我的小公主", "女王大人请吩咐",
+  "小的随时待命", "别生气啦", "生气容易变老", "笑一个", "再笑一个", "么么哒", "亲亲你",
+  "抱紧紧", "举高高", "转圈圈", "想你的风还是吹到了心里", "这世界车水马龙", "只有你让我心动",
+  "遇见你之前，我没想过结婚", "遇见你之后，结婚没想过别人", "所有的偶遇都是我蓄谋已久", "想做你的唯一", "想和你在这个星球流浪"
 ];
 
-// 彩虹色系
-const colors = [
-  '#ff6b9d', '#c44569', '#f8b500', '#ffa801',
-  '#38ada9', '#079992', '#4a69bd', '#6a89cc',
-  '#b8e994', '#78e08f', '#e55039', '#fa983a',
-  '#eb2f06', '#ee5a6f', '#1e3799', '#0c2461'
-];
+const neonColors = ['#ff00cc', '#00ffcc', '#ffcc00', '#00ccff', '#ff6666'];
+let cardElements = [];
+let createTimer = null;
+let zIndexCounter = 1000;
 
-const canvas = document.getElementById('heartCanvas');
+// --- 2. 烟花系统 (优化版) ---
+const canvas = document.getElementById('fireworksCanvas');
 const ctx = canvas.getContext('2d');
-
-let heartPoints = [];
-let currentIndex = 0;
-let animationTimer = null;
-let usedMessages = [];
-let allCards = [];
-let isScattered = false;
-
-// 设置画布大小
-function resizeCanvas() {
-  const size = Math.min(window.innerWidth, window.innerHeight);
-  canvas.width = size;
-  canvas.height = size;
-  drawHeart();
-  calculateHeartPoints();
-}
-
-// 绘制心形轮廓
-function drawHeart() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const scale = canvas.width / 800;
-  
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-  ctx.lineWidth = 3;
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-  
-  for (let t = 0; t <= Math.PI * 2; t += 0.01) {
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-    
-    const px = centerX + x * scale * 15;
-    const py = centerY + y * scale * 15;
-    
-    if (t === 0) {
-      ctx.moveTo(px, py);
-    } else {
-      ctx.lineTo(px, py);
-    }
-  }
-  
-  ctx.closePath();
-  ctx.stroke();
-}
-
-// 计算心形轮廓上的点 (可以绕几圈)
-function calculateHeartPoints() {
-  heartPoints = [];
-  
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const scale = canvas.width / 800;
-  const loops = 3; // 绕3圈
-  const totalPoints = 200;
-  const pointsPerLoop = Math.floor(totalPoints / loops);
-  
-  for (let loop = 0; loop < loops; loop++) {
-    for (let i = 0; i < pointsPerLoop; i++) {
-      const t = (i / pointsPerLoop) * Math.PI * 2;
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-      
-      // 每圈稍微偏移一点
-      const offset = loop * 8;
-      const px = centerX + (x * scale * 15) + (Math.random() - 0.5) * offset;
-      const py = centerY + (y * scale * 15) + (Math.random() - 0.5) * offset;
-      
-      const rect = canvas.getBoundingClientRect();
-      heartPoints.push({
-        x: rect.left + px,
-        y: rect.top + py
-      });
-    }
-  }
-}
-
-// 获取唯一消息
-function getUniqueMessage() {
-  if (usedMessages.length >= messages.length) {
-    usedMessages = [];
-  }
-  
-  let availableMessages = messages.filter(msg => !usedMessages.includes(msg));
-  let message = availableMessages[Math.floor(Math.random() * availableMessages.length)];
-  usedMessages.push(message);
-  
-  return message;
-}
-
-// 获取随机颜色
-function getRandomColor() {
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// 显示提示
-function showToast(text) {
-  const toast = document.getElementById('toast');
-  toast.textContent = text;
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2000);
-}
-
-// 复制文本
-function copyText(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('已复制: ' + text);
-    }).catch(() => {
-      fallbackCopy(text);
-    });
-  } else {
-    fallbackCopy(text);
-  }
-}
-
-// 降级复制方法
-function fallbackCopy(text) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    document.execCommand('copy');
-    showToast('已复制: ' + text);
-  } catch (err) {
-    showToast('复制失败');
-  }
-  document.body.removeChild(textarea);
-}
-
-// 创建弹窗卡片
-function createPopupCard(x, y, message) {
-  const card = document.createElement('div');
-  card.className = 'popup-card';
-  const borderColor = getRandomColor();
-  card.style.borderColor = borderColor;
-  
-  card.innerHTML = `
-    <span class="heart-icon">♥</span>
-    <span class="text">${message}</span>
-    <button class="close-btn">×</button>
-  `;
-  
-  card.style.left = x + 'px';
-  card.style.top = y + 'px';
-  
-  document.body.appendChild(card);
-  allCards.push(card);
-  
-  setTimeout(() => card.classList.add('show'), 50);
-  
-  // 点击文字复制
-  const textSpan = card.querySelector('.text');
-  textSpan.addEventListener('click', (e) => {
-    e.stopPropagation();
-    copyText(message);
-  });
-  
-  // 关闭按钮
-  const closeBtn = card.querySelector('.close-btn');
-  closeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    card.remove();
-    const index = allCards.indexOf(card);
-    if (index > -1) allCards.splice(index, 1);
-  });
-  
-  // 拖拽功能
-  makeDraggable(card);
-}
-
-// 使元素可拖拽
-function makeDraggable(element) {
-  let isDragging = false;
-  let currentX, currentY, initialX, initialY;
-  
-  element.addEventListener('mousedown', dragStart);
-  element.addEventListener('touchstart', dragStart, { passive: false });
-  
-  function dragStart(e) {
-    if (e.target.classList.contains('close-btn') || e.target.classList.contains('text')) return;
-    
-    isDragging = true;
-    element.style.cursor = 'grabbing';
-    
-    if (e.type === 'touchstart') {
-      initialX = e.touches[0].clientX - element.offsetLeft;
-      initialY = e.touches[0].clientY - element.offsetTop;
-    } else {
-      initialX = e.clientX - element.offsetLeft;
-      initialY = e.clientY - element.offsetTop;
-    }
-    
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('touchmove', drag, { passive: false });
-    document.addEventListener('mouseup', dragEnd);
-    document.addEventListener('touchend', dragEnd);
-  }
-  
-  function drag(e) {
-    if (!isDragging) return;
-    
-    e.preventDefault();
-    
-    if (e.type === 'touchmove') {
-      currentX = e.touches[0].clientX - initialX;
-      currentY = e.touches[0].clientY - initialY;
-    } else {
-      currentX = e.clientX - initialX;
-      currentY = e.clientY - initialY;
-    }
-    
-    element.style.left = currentX + 'px';
-    element.style.top = currentY + 'px';
-  }
-  
-  function dragEnd() {
-    isDragging = false;
-    element.style.cursor = 'move';
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('touchmove', drag);
-    document.removeEventListener('mouseup', dragEnd);
-    document.removeEventListener('touchend', dragEnd);
-  }
-}
-
-// 散开到全屏
-function scatterCards() {
-  if (isScattered) return;
-  isScattered = true;
-  
-  allCards.forEach(card => {
-    card.classList.add('scattered');
-    
-    const randomX = Math.random() * (window.innerWidth - 180) + 50;
-    const randomY = Math.random() * (window.innerHeight - 100) + 50;
-    
-    setTimeout(() => {
-      card.style.left = randomX + 'px';
-      card.style.top = randomY + 'px';
-      card.style.transform = `scale(1) rotate(${Math.random() * 20 - 10}deg)`;
-    }, 100);
-  });
-}
-
-// 开始动画
-function startAnimation() {
-  clearAll();
-  currentIndex = 0;
-  usedMessages = [];
-  allCards = [];
-  isScattered = false;
-  
-  function showNext() {
-    if (currentIndex < heartPoints.length) {
-      const point = heartPoints[currentIndex];
-      const message = getUniqueMessage();
-      createPopupCard(point.x, point.y, message);
-      
-      currentIndex++;
-      animationTimer = setTimeout(showNext, 150); // 每150ms出现一个
-    } else {
-      // 心形完成后，延迟2秒散开
-      setTimeout(() => {
-        scatterCards();
-      }, 2000);
-    }
-  }
-  
-  showNext();
-}
-
-// 清空所有弹窗
-function clearAll() {
-  if (animationTimer) {
-    clearTimeout(animationTimer);
-    animationTimer = null;
-  }
-  
-  const cards = document.querySelectorAll('.popup-card');
-  cards.forEach(card => card.remove());
-  
-  currentIndex = 0;
-  usedMessages = [];
-  allCards = [];
-  isScattered = false;
-}
-
-// 初始化
-window.addEventListener('load', () => {
-  resizeCanvas();
-  setTimeout(startAnimation, 500);
-});
+let w = window.innerWidth;
+let h = window.innerHeight;
+canvas.width = w; canvas.height = h;
 
 window.addEventListener('resize', () => {
-  resizeCanvas();
+  w = window.innerWidth;
+  h = window.innerHeight;
+  canvas.width = w; canvas.height = h;
 });
 
-// 阻止页面滚动
-document.body.addEventListener('touchmove', (e) => {
-  if (!e.target.closest('.popup-card')) {
-    e.preventDefault();
+let particles = [];
+class Particle {
+  constructor(x, y, color) {
+    this.x = x; this.y = y; this.color = color;
+    const t = Math.random() * Math.PI * 2;
+    const force = Math.random() * 2 + 1;
+    // 心形扩散
+    const hx = 16 * Math.pow(Math.sin(t), 3);
+    const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    this.vx = (hx / 15) * force;
+    this.vy = (hy / 15) * force;
+    this.gravity = 0.05;
+    this.alpha = 1;
+    this.decay = 0.015;
   }
-}, { passive: false });
-</script>
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.vy += this.gravity;
+    this.alpha -= this.decay;
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 2.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
 
+function loop() {
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+  
+  if(Math.random()<0.04) { // 自动放烟花
+    const cx = Math.random()*w;
+    const cy = Math.random()*h*0.6;
+    const col = neonColors[Math.floor(Math.random()*neonColors.length)];
+    for(let i=0; i<40; i++) particles.push(new Particle(cx, cy, col));
+  }
+  
+  for(let i=particles.length-1; i>=0; i--) {
+    particles[i].update();
+    particles[i].draw();
+    if(particles[i].alpha<=0) particles.splice(i,1);
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+// --- 3. 核心：弹窗生成 ---
+function startShow() {
+  // 1. 尝试播放音乐 (不阻塞后续代码)
+  const audio = document.getElementById('bgMusic');
+  audio.play().catch(e => console.log('音乐自动播放被拦截，需要用户点击页面:', e));
+
+  // 2. 清理旧的
+  clearAll();
+  
+  // 3. 关闭菜单
+  toggleMenu();
+
+  // 4. 准备数据
+  let msgs = [...textData];
+  while(msgs.length < 200) msgs = msgs.concat(textData);
+  msgs = msgs.sort(()=>Math.random()-0.5).slice(0, 200);
+
+  // 5. 计算坐标 (修复手机屏幕计算问题)
+  // 获取当前真实的视口中心
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2 - 50; // 稍微向上，留出底部按钮位置
+
+  // 针对手机优化半径：取宽度的 1/35 左右作为基准
+  const baseScale = Math.min(window.innerWidth, window.innerHeight) / 38;
+
+  let points = [];
+  // 双层爱心：内圈80，外圈120
+  [ {c:80, s:0.7}, {c:120, s:1.1} ].forEach(layer => {
+    for(let i=0; i<layer.c; i++) {
+      const t = (Math.PI*2*i)/layer.c;
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+      points.push({
+        x: cx + x * baseScale * layer.s,
+        y: cy + y * baseScale * layer.s
+      });
+    }
+  });
+
+  // 6. 启动定时器生成
+  let idx = 0;
+  createTimer = setInterval(() => {
+    if(idx >= points.length) { clearInterval(createTimer); return; }
+    
+    // 加一点点随机偏移，防止完全重叠死板
+    const p = points[idx];
+    const jitter = 4;
+    const fx = p.x + (Math.random()-0.5)*jitter;
+    const fy = p.y + (Math.random()-0.5)*jitter;
+    
+    createWindow(fx, fy, idx, msgs[idx]);
+    idx++;
+  }, 25);
+}
+
+function createWindow(x, y, i, text) {
+  const div = document.createElement('div');
+  div.className = 'window-card';
+  const color = neonColors[i % neonColors.length];
+  div.style.borderColor = color;
+  div.style.left = x + 'px';
+  div.style.top = y + 'px';
+  div.style.zIndex = 100 + i;
+  
+  div.innerHTML = `
+    <div class="card-header">
+      <span style="color:${color};font-weight:bold;">♥ 碎碎念</span>
+      <span class="close-btn">×</span>
+    </div>
+    <div class="card-body">${text}</div>
+  `;
+  
+  document.body.appendChild(div);
+  cardElements.push(div);
+  
+  // 延时添加 show 类触发 CSS 动画
+  setTimeout(() => div.classList.add('show'), 10);
+  
+  bindTouch(div);
+}
+
+// --- 4. 触摸交互 (重点修复) ---
+function bindTouch(el) {
+  let startX, startY, initX, initY;
+  let dragging = false;
+
+  // 1. 关闭逻辑
+  const closeBtn = el.querySelector('.close-btn');
+  const closeAction = (e) => {
+    e.stopPropagation(); // 防止冒泡触发拖拽
+    el.style.opacity = 0;
+    setTimeout(() => el.remove(), 300);
+  };
+  closeBtn.addEventListener('click', closeAction);
+  closeBtn.addEventListener('touchstart', closeAction, {passive: true});
+
+  // 2. 激活逻辑 (点击置顶)
+  const activate = () => {
+    zIndexCounter++;
+    el.style.zIndex = zIndexCounter;
+    el.classList.add('active');
+  };
+  el.addEventListener('mousedown', activate);
+  el.addEventListener('touchstart', activate, {passive: true});
+
+  // 3. 拖拽逻辑 (兼容 Mouse 和 Touch)
+  const header = el.querySelector('.card-header');
+
+  const startDrag = (e) => {
+    dragging = true;
+    activate();
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX;
+    startY = pt.clientY;
+    initX = el.offsetLeft;
+    initY = el.offsetTop;
+    
+    // 如果是触摸，防止屏幕滚动
+    if(e.type === 'touchstart') document.body.style.overflow = 'hidden';
+  };
+
+  const moveDrag = (e) => {
+    if(!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - startX;
+    const dy = pt.clientY - startY;
+    el.style.left = (initX + dx) + 'px';
+    el.style.top = (initY + dy) + 'px';
+    if(e.cancelable) e.preventDefault();
+  };
+
+  const endDrag = () => {
+    dragging = false;
+    document.body.style.overflow = '';
+  };
+
+  header.addEventListener('mousedown', startDrag);
+  header.addEventListener('touchstart', startDrag, {passive: false});
+
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('touchmove', moveDrag, {passive: false});
+
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
+}
+
+// --- 5. 控制按钮 ---
+function toggleMenu() {
+  document.getElementById('controls').classList.toggle('open');
+}
+
+function clearAll() {
+  clearInterval(createTimer);
+  cardElements.forEach(el => el.remove());
+  cardElements = [];
+  document.getElementById('controls').classList.remove('open');
+}
+
+function scatterCards() {
+  clearInterval(createTimer);
+  document.getElementById('controls').classList.remove('open');
+  cardElements.forEach(el => {
+    const rx = Math.random() * (window.innerWidth - 80) + 40;
+    const ry = Math.random() * (window.innerHeight - 100) + 50;
+    const rot = (Math.random()-0.5)*30;
+    el.style.transition = 'all 0.6s ease';
+    el.style.left = rx + 'px';
+    el.style.top = ry + 'px';
+    el.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(1)`;
+    el.classList.remove('active');
+  });
+}
+
+// 点击空白取消高亮
+document.addEventListener('touchstart', (e) => {
+  if(e.target.tagName === 'CANVAS' || e.target.tagName === 'BODY') {
+    document.querySelectorAll('.window-card.active').forEach(d => d.classList.remove('active'));
+  }
+});
+
+</script>
 </body>
 </html>
