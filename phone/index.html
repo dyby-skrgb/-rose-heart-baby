@@ -164,6 +164,7 @@
       color: #fff;
       font-weight: 800;
       backdrop-filter: blur(10px);
+      cursor: pointer;
     }
   </style>
 </head>
@@ -183,27 +184,22 @@
     const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
     const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
 
-    // 你要“200条”
     const totalPopups = 200;
 
-    // “轮廓更清”：轮廓点少一些更像线条（可用 ?heart=70 调）
     const heartPopups = Math.min(
       totalPopups,
       Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 120)))
     );
 
-    // 越大越慢：你要慢一点（可用 ?speed=120 调更慢）
     const defaultSpeed = isMobile ? 120 : 95;
     const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
 
-    // 散落与“散落后收起可点开”
     const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
     const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
     const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 3400 : 2400)));
     const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 950 : 1050)));
     const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 22 : 16)));
 
-    // 顶部/底部预留：有固定栏挡住就用 ?top=120
     const topReserve = Math.max(0, Number(params.get('top') || 0));
     const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
 
@@ -227,7 +223,6 @@
       return a || 1;
     }
 
-    // 让“出现过程”也像心：按跳步顺序铺满整圈
     function spreadOrder(n) {
       if (n <= 1) return [0];
       let step = Math.floor(n / 2);
@@ -243,69 +238,71 @@
       return out;
     }
 
-    // 200条“文字不重复”：组合生成，确保每条唯一
+    // 生成200条简短表白短句（不重复）
     function generateUniqueMessages(total, name) {
-      const A = [
-        "我想你了","我好想你","我在想你","我又想你了","我一直在想你",
-        "我真的很喜欢你","我特别想你","我忍不住想你","我想抱抱你","我想亲亲你",
-        "我想见你","我想听你声音","我想和你说话","我想把你抱紧","我想靠近你",
-        "我想把你宠坏","我想把你护好","我想把你放在心上","我想把你写进今天","我想把你藏进梦里",
+      const shortMessages = [
+        "我想你了", "我好想你", "我喜欢你", "我爱你", "想你",
+        "爱你", "喜欢你", "超喜欢你", "好爱你", "真的想你",
+        "抱抱你", "亲亲你", "想见你", "想陪你", "陪着你",
+        "晚安", "早安", "想你啦", "爱你哦", "喜欢你呀",
+        "你真好", "你最好", "你最棒", "好想抱你", "好想亲你",
+        "我在想你", "一直想你", "天天想你", "时时想你", "刻刻想你",
+        "你是我的宝贝", "你是我的心肝", "你是我的全部", "你让我心动", "你让我着迷",
+        "和你在一起真好", "有你真幸福", "遇见你真好", "认识你真好", "爱上你了",
+        "想牵你的手", "想抱紧你", "想吻你", "想和你在一起", "想永远陪你",
+        "你笑起来真好看", "你的眼睛真美", "你真可爱", "你真温柔", "你真美",
+        "记得想我", "记得爱我", "记得吃饭", "记得喝水", "记得休息",
+        "别熬夜", "早点睡", "照顾好自己", "注意身体", "好好的",
+        "我会等你", "我会陪你", "我会守护你", "我会爱你", "我会宠你",
+        "你辛苦了", "你累吗", "你还好吗", "你开心吗", "你想我吗",
+        "我在这儿", "我一直在", "我在等你", "我在爱你", "我好想你啊",
+        "别怕", "别哭", "别难过", "别生气", "我在呢",
+        "你是最好的", "你是最美的", "你是独一无二的", "你是我的唯一", "只爱你",
+        "每天都想你", "分分秒秒想你", "无时无刻不想你", "做梦都梦到你", "满脑子都是你",
+        "你在干嘛", "你吃了吗", "你睡了吗", "你忙吗", "想和你聊天",
+        "我好想你呀", "我真的爱你", "我永远爱你", "我只爱你", "我的心里只有你",
+        "想抱你", "想亲你", "想你想到睡不着", "想你想到心疼", "想你想得厉害",
+        "你让我心跳加速", "你让我脸红", "你让我害羞", "听到你就开心", "看到你就开心",
+        "你是我的小宝贝", "你是我的心上人", "你是我的小可爱", "你是我的小甜心", "你是我的小公主",
+        "想把你藏起来", "想把你抱紧", "想把你宠坏", "想把你捧在手心", "想把你放心上",
+        "你对我真好", "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你在真好",
+        "我的眼里心里都是你", "我满脑子都是你", "我一天到晚想你", "你笑起来像阳光", "你的声音好听",
+        "我想永远和你在一起", "我想一直陪你", "我想守护你一辈子", "我想爱你到永远", "我想和你到老",
+        "你是我见过最好的", "你是我最珍贵的", "你是我最重要的", "想牵你手", "想摸你头",
+        "你的每句话我都记得", "你的笑容我都喜欢", "你的一切我都爱", "我会一直陪你", "我会一直爱你",
+        "你开心我就开心", "你快乐我就快乐", "你幸福我就幸福", "遇见你是幸运", "认识你是福气",
+        "你的笑容治愈我", "你的声音温暖我", "你的存在感动我", "我想给你全世界", "我想给你最好的",
+        "你是我的动力", "你是我的希望", "你是我的光", "你是我的温暖", "你是我的依靠",
+        "想和你看日出", "想和你看日落", "想和你看星星", "想和你看月亮", "想和你看雪",
+        "想和你吃饭", "想和你散步", "想和你旅行", "想和你做梦", "想和你变老",
+        "我会保护你", "我会心疼你", "我会理解你", "我会支持你", "我会信任你",
+        "你累了就靠我", "你难过就找我", "你开心告诉我", "你想我就说", "你需要我就在",
+        "宝贝我爱你", "宝贝想你了", "宝贝晚安", "宝贝早安", "宝贝抱抱",
+        "超级喜欢你", "超级爱你", "超级想你", "真的好喜欢你", "真的好爱你",
+        "你是我的小心肝", "你是我的小月亮", "你是我的小星星", "你是我的小太阳", "你是我的小天使",
+        "今天也想你", "今天也爱你", "今天也喜欢你", "想你呀", "爱你呀",
+        "喜欢你呀", "抱你呀", "亲你呀", "想死你了", "爱死你了",
+        "好想见到你", "好想听你声音", "好想和你说话", "好想靠近你", "好想拥有你"
       ];
 
-      const B = [
-        "记得喝水","好好吃饭","别熬夜","别逞强","累了就休息",
-        "不开心就说","难受就来找我","出门注意安全","到家告诉我一声","别想太多",
-        "把自己照顾好","今天也要开心一点",
-      ];
-
-      const C = [
-        "我在这儿","我一直在","我会陪着你","我会听你说","我会抱紧你",
-        "我会更懂你","我会好好爱你","我会让你安心","我会给你偏爱","我会站在你这边",
-      ];
-
-      const D = [
-        "好不好","听话","别怕","抱抱","亲亲",
-        "我等你","想你","晚安","我爱你","我在",
-      ];
-
-      const msgs = [];
-      const seen = new Set();
-
-      for (let i = 0; i < A.length && msgs.length < total; i++) {
-        for (let j = 0; j < B.length && msgs.length < total; j++) {
-          for (let k = 0; k < C.length && msgs.length < total; k++) {
-            for (let m = 0; m < D.length && msgs.length < total; m++) {
-              const s = `${A[i]}，${name}。${B[j]}。${C[k]}。${D[m]}。`;
-              if (!seen.has(s)) {
-                seen.add(s);
-                msgs.push(s);
-              }
-            }
-          }
-        }
+      // 打乱顺序让每次都不一样
+      shuffle(shortMessages);
+      
+      // 如果不够200条，继续补充
+      while (shortMessages.length < total) {
+        const num = shortMessages.length + 1;
+        shortMessages.push(`第${num}句：我爱你`);
       }
-
-      // 兜底：保证永远够total且不重复
-      let guard = 0;
-      while (msgs.length < total && guard++ < total * 20) {
-        const s = `我想你了，${name}。这是给你的第${msgs.length + 1}个小心动。`;
-        if (!seen.has(s)) {
-          seen.add(s);
-          msgs.push(s);
-        }
-      }
-
-      return shuffle(msgs);
+      
+      return shortMessages.slice(0, total);
     }
 
-    // 心形参数方程
     function heartPoint(t) {
       const x = 16 * Math.pow(Math.sin(t), 3);
       const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
       return { x, y };
     }
 
-    // 导数：用于切线/法线
     function heartDeriv(t) {
       const s = Math.sin(t), c = Math.cos(t);
       const dx = 48 * s * s * c;
@@ -313,7 +310,6 @@
       return { dx, dy };
     }
 
-    // 弧长查表（等距取点更“像”更稳）
     let cachedLUT = null;
     function getHeartLUT(samples = 3200) {
       if (cachedLUT && cachedLUT.samples === samples) return cachedLUT;
@@ -501,7 +497,6 @@
       bar.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
 
-        // 散落后默认收起：点标题栏直接展开阅读
         if (el.classList.contains('minimized')) {
           bringToFront(el);
           setMinimized(el, false);
@@ -568,14 +563,7 @@
 
       const messages = generateUniqueMessages(totalPopups, nickname);
       let msgIndex = 0;
-      const nextText = () => {
-        if (msgIndex >= messages.length) {
-          const n = msgIndex + 1;
-          msgIndex++;
-          return `我想你了，${nickname}。这是给你的第${n}个小心动。`;
-        }
-        return messages[msgIndex++];
-      };
+      const nextText = () => messages[msgIndex++] || `第${msgIndex}句：我爱你`;
 
       const W = innerWidth;
       const H = innerHeight;
@@ -585,11 +573,9 @@
 
       const lut = getHeartLUT(3200);
 
-      // 更像：顶部更展开、底部更尖（强一点）
       const xStretchBase = isMobile ? 1.42 : 1.18;
       const yStretchBase = isMobile ? 1.18 : 1.07;
 
-      // 用“有效占位”避免 fit 压扁
       const effectiveW = popupW * 0.58;
       const effectiveH = popupH * 0.58;
 
@@ -605,7 +591,6 @@
       const centerX = W / 2;
       const centerY = topReserve + availH / 2 + (isMobile ? 6 : 10);
 
-      // 轮廓更清：默认单圈；想加厚可 ?rings=3
       const rings = clampInt(Number(params.get('rings') || 1), 1, 5);
       const ringOffsetsPx = ringOffsetsFromCount(rings);
       const ringCount = ringOffsetsPx.length;
@@ -624,8 +609,6 @@
         for (const p of pts) {
           const yRel = (p.y - lut.midY) / (lut.height / 2);
 
-          // 下半部分：X更收窄、Y更拉长 => 底部更尖
-          // 上半部分：X略展开 => 两瓣更明显
           const bottomNarrow = clamp(1 + yRel * 0.65, 0.42, 1.06);
           const topWiden = clamp(1 + yRel * 0.22, 0.92, 1.28);
 
@@ -639,7 +622,6 @@
           const tx = d.dx * xStretch;
           const ty = d.dy * yStretch;
 
-          // 法线用于多圈偏移
           let nx = -ty, ny = tx;
           const nl = Math.hypot(nx, ny) || 1;
           nx /= nl; ny /= nl;
@@ -679,48 +661,4 @@
           schedule(token, () => {
             const x = rand(halfW + margin, innerWidth - halfW - margin);
             const y = rand(halfH + margin, innerHeight - halfH - margin);
-            makePopup({
-              cx: x,
-              cy: y,
-              text: nextText(),
-              z: 10 + order++,
-              minimized
-            });
-          }, startDelayMs + k * extraSpawnGapMs);
-        }
-      }
-
-      if (scatterEnabled) {
-        schedule(token, () => {
-          scatteredOnce = true;
-
-          // 散落前先收起（避免 200 个全尺寸糊屏），散落后点标题栏展开阅读
-          if (minimizeAfterScatter) {
-            for (const el of created) setMinimized(el, true);
-          }
-
-          scatterPopups(token, created, scatterDurationMs);
-
-          // 其余弹窗：散落后直接以“收起”状态生成
-          spawnRemainingPopups(0, minimizeAfterScatter && scatteredOnce);
-        }, lastDelay + scatterDelayMs);
-      } else {
-        // 即使关闭散落，也保证凑够 200 条
-        spawnRemainingPopups(lastDelay + 200, false);
-      }
-    }
-
-    document.getElementById('replay').addEventListener('click', buildHeart);
-    document.getElementById('clear').addEventListener('click', () => { buildToken++; resetScene(); });
-
-    addEventListener('keydown', (e) => {
-      if (e.key === 'r' || e.key === 'R') buildHeart();
-      if (e.key === 'Escape') { buildToken++; resetScene(); }
-    });
-
-    addEventListener('resize', () => buildHeart(), { passive: true });
-
-    buildHeart();
-  </script>
-</body>
-</html>
+            make
