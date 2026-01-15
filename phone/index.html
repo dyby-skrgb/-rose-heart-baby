@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -13,8 +14,7 @@
       margin: 0;
       overflow: hidden;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      -webkit-tap-highlight-color: transparent;
-    }
+      -webkit-tap-highlight-color: transparent;}
 
     body{
       min-height: 100dvh;
@@ -235,6 +235,250 @@
         out[i] = idx;
         idx = (idx + step) % n;
       }
+      return out;抱歉，模型上游服务不稳定，请稍后再试或切换模型。<think>
+
+用户说我给的代码是空的，让我检查一下。看起来我之前尝试创建文件，但可能被截断了。用户很生气，我需要直接在回复中给出完整的HTML代码，而不是使用文件创建工具。
+
+我需要把完整的HTML代码直接粘贴在回复中，确保代码完整且可以直接复制使用。
+
+</think>
+
+非常抱歉！我直接给你完整的代码，你可以直接复制使用：
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>爱心弹窗（简短表白短句版）</title>
+
+  <style>
+    :root { color-scheme: dark; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      -webkit-tap-highlight-color: transparent;}
+
+    body{
+      min-height: 100dvh;
+      background:
+        radial-gradient(900px 600px at 20% 10%, #2a1030 0%, transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, #0b2a3a 0%, transparent 55%),
+        #05060a;
+      color: #fff;
+    }
+
+    #layer{
+      position: fixed;
+      inset: 0;
+      height: 100dvh;
+      z-index: 9999;
+    }
+
+    :root{
+      --popup-w: clamp(110px, 28vw, 156px);
+      --popup-h: clamp(72px, 9.6vh, 104px);
+      --bar-h: 26px;
+      --radius: 12px;
+      --font: clamp(10px, 1.14vh, 12px);
+    }
+
+    @media (min-width: 900px){
+      :root{
+        --popup-w: 188px;
+        --popup-h: 114px;
+        --bar-h: 32px;
+        --radius: 14px;
+        --font: 13.5px;
+      }
+    }
+
+    .popup{
+      position: fixed;
+      width: var(--popup-w);
+      height: var(--popup-h);
+      border-radius: var(--radius);
+      background: rgba(18,20,28,.62);
+      border: 2px solid rgba(255,255,255,.18);
+      box-shadow: 0 18px 55px rgba(0,0,0,.45);
+      overflow: hidden;
+      transform: translate(-50%, -50%);
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .popup.minimized{
+      height: var(--bar-h);
+      background: rgba(18,20,28,.78);
+    }
+
+    .popup.dragging{ will-change: left, top, transform; }
+
+    .popup.focused{
+      outline: 2px solid rgba(255,255,255,.16);
+      box-shadow: 0 22px 70px rgba(0,0,0,.55);
+    }
+
+    .bar{
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px 0 10px;
+      background: rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .popup.minimized .bar{ cursor: pointer; }
+    .bar:active{ cursor: grabbing; }
+
+    .hint{
+      margin-left: auto;
+      font-size: 11px;
+      opacity: .72;
+      display: none;
+      white-space: nowrap;
+    }.popup.minimized .hint{ display: block; }
+
+    .close{
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      flex:0 0 auto;
+    }
+
+    .content{
+      height: calc(var(--popup-h) - var(--bar-h));
+      display: grid;
+      place-items: center;
+      padding: 7px 9px;
+      text-align: center;
+      font-size: var(--font);
+      color: rgba(255,255,255,.95);
+      user-select: text;
+      line-height: 1.25;
+    }
+    .popup.minimized .content{ display: none; }
+
+    .popIn{ animation: popIn .72s cubic-bezier(.2,.9,.2,1) both; }
+    @keyframes popIn{
+      from{ opacity: 0; transform: translate(-50%, -50%) scale(.82); }
+      to{ opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .popIn{ animation: none; }
+      .popup{ transition: none !important; }
+    }
+
+    .toolbar{
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 10000;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .toolbar button{
+      pointer-events: auto;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius:999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,.65);
+      color: #fff;
+      font-weight: 800;
+      backdrop-filter: blur(10px);}
+  </style>
+</head>
+
+<body>
+  <div id="layer"></div>
+
+  <div class="toolbar">
+    <button id="replay">重播</button>
+    <button id="clear">清空</button>
+  </div>
+
+  <script>
+    const layer = document.getElementById('layer');
+    const params = new URLSearchParams(location.search);
+
+    const nickname = (params.get('name') || "宝宝").trim() || "宝宝";
+    const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 520;
+
+    const totalPopups = 200;
+
+    const heartPopups = Math.min(
+      totalPopups,
+      Math.max(10, Number(params.get('heart') || (isMobile ? 56 : 120)))
+    );
+
+    const defaultSpeed = isMobile ? 120 : 95;
+    const appearIntervalMs = Math.max(12, Number(params.get('speed') || defaultSpeed));
+
+    const scatterEnabled = (params.get('scatter') ?? '1') !== '0';
+    const minimizeAfterScatter = (params.get('min') ?? '1') !== '0';
+    const scatterDelayMs = Math.max(0, Number(params.get('scatterDelay') || (isMobile ? 3400 : 2400)));
+    const scatterDurationMs = Math.max(200, Number(params.get('scatterDuration') || (isMobile ? 950 : 1050)));
+    const extraSpawnGapMs = Math.max(0, Number(params.get('extraGap') || (isMobile ? 22 : 16)));
+
+    const topReserve = Math.max(0, Number(params.get('top') || 0));
+    const bottomReserve = Math.max(0, Number(params.get('bottom') || (isMobile ? 102 : 0)));
+
+    const TAU = Math.PI * 2;
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.trunc(v))); }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function gcd(a, b) {
+      a = Math.abs(a); b = Math.abs(b);
+      while (b) { const t = a % b; a = b; b = t; }
+      return a ||1;
+    }
+
+    function spreadOrder(n) {
+      if (n <= 1) return [0];
+      let step = Math.floor(n / 2);
+      if (step % 2 === 0) step += 1;
+      while (gcd(step, n) !== 1) step += 2;
+
+      const out = new Array(n);
+      let idx = 0;
+      for (let i = 0; i < n; i++) {
+        out[i] = idx;
+        idx = (idx + step) % n;
+      }
       return out;
     }
 
@@ -265,7 +509,7 @@
         "你让我心跳加速", "你让我脸红", "你让我害羞", "听到你就开心", "看到你就开心",
         "你是我的小宝贝", "你是我的心上人", "你是我的小可爱", "你是我的小甜心", "你是我的小公主",
         "想把你藏起来", "想把你抱紧", "想把你宠坏", "想把你捧在手心", "想把你放心上",
-        "你对我真好", "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你在真好",
+        "你对我真好", "和你说话真舒服", "和你在一起真自在", "和你聊天真开心", "有你真幸福",
         "我的眼里心里都是你", "我满脑子都是你", "我一天到晚想你", "你笑起来像阳光", "你的声音好听",
         "我想永远和你在一起", "我想一直陪你", "我想守护你一辈子", "我想爱你到永远", "我想和你到老",
         "你是我见过最好的", "你是我最珍贵的", "你是我最重要的", "想牵你手", "想摸你头",
@@ -280,14 +524,11 @@
         "宝贝我爱你", "宝贝想你了", "宝贝晚安", "宝贝早安", "宝贝抱抱",
         "超级喜欢你", "超级爱你", "超级想你", "真的好喜欢你", "真的好爱你",
         "你是我的小心肝", "你是我的小月亮", "你是我的小星星", "你是我的小太阳", "你是我的小天使",
-        "今天也想你", "今天也爱你", "今天也喜欢你", "想你呀", "爱你呀",
-        "喜欢你呀", "抱你呀", "亲你呀", "想死你了", "爱死你了",
-        "好想见到你", "好想听你声音", "好想和你说话", "好想靠近你", "好想拥有你"
+        "今天也想你", "今天也爱你", "今天也喜欢你", "想你呀", "爱你呀"
       ];
 
       // 打乱顺序让每次都不一样
       shuffle(shortMessages);
-      
       // 如果不够200条，继续补充
       while (shortMessages.length < total) {
         const num = shortMessages.length + 1;
@@ -347,8 +588,7 @@
         midX: (minX + maxX) / 2,
         midY: (minY + maxY) / 2,
         width: (maxX - minX),
-        height: (maxY - minY),
-      };
+        height: (maxY - minY),};
       return cachedLUT;
     }
 
@@ -362,7 +602,7 @@
 
         while (seg < lut.samples - 1 && lut.lengths[seg + 1] < d) seg++;
 
-        const d0 = lut.lengths[seg];
+        constd0 = lut.lengths[seg];
         const d1 = lut.lengths[seg + 1];
         const u = d1 === d0 ? 0 : (d - d0) / (d1 - d0);
 
@@ -418,14 +658,13 @@
       for (const id of timers) clearTimeout(id);
       timers = [];
       layer.replaceChildren();
-      scatteredOnce = false;
-    }
+      scatteredOnce = false;}
 
     function setMinimized(el, on) {
       el.classList.toggle('minimized', !!on);
     }
 
-    function scatterPopups(token, popups, durationMs) {
+    function scatterPopups(token, popups,durationMs) {
       const margin = 10;
 
       for (const el of popups) {
@@ -440,7 +679,7 @@
         const rot = rand(-12, 12);
 
         el.style.transition =
-          `left ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
+          `left ${durationMs}ms cubic-bezier(.2,.9,.2,1),` +
           `top ${durationMs}ms cubic-bezier(.2,.9,.2,1), ` +
           `transform ${durationMs}ms cubic-bezier(.2,.9,.2,1)`;
 
@@ -448,15 +687,13 @@
           if (token !== buildToken || !el.isConnected) return;
           el.style.left = x + 'px';
           el.style.top = y + 'px';
-          el.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;
-        });
+          el.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;});
       }
 
       schedule(token, () => {
         for (const el of popups) {
           if (!el || !el.isConnected) continue;
-          el.style.transition = '';
-        }
+          el.style.transition = '';}
       }, durationMs + 40);
     }
 
@@ -474,191 +711,4 @@
           <span class="title">♡ ${nickname}</span>
           <span class="hint" aria-hidden="true">点开查看</span>
           <button class="close" aria-label="关闭">×</button>
-        </div>
-        <div class="content"></div>
-      `;
-      el.querySelector('.content').textContent = text;
-
-      setMinimized(el, minimized);
-
-      el.addEventListener('pointerdown', () => bringToFront(el), { passive: true });
-
-      const closeBtn = el.querySelector('.close');
-      closeBtn.addEventListener('pointerdown', (e) => e.stopPropagation(), { passive: true });
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        el.remove();
-      });
-
-      const bar = el.querySelector('.bar');
-      let dragging = false;
-      let dx = 0, dy = 0;
-
-      bar.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-
-        if (el.classList.contains('minimized')) {
-          bringToFront(el);
-          setMinimized(el, false);
-          return;
-        }
-
-        dragging = true;
-        el.classList.add('dragging');
-        el.setPointerCapture?.(e.pointerId);
-
-        bringToFront(el);
-        el.style.transition = '';
-        el.style.transform = 'translate(-50%, -50%) scale(1)';
-
-        const rect = el.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        dx = e.clientX - centerX;
-        dy = e.clientY - centerY;
-      });
-
-      el.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        const nextCx = clamp(e.clientX - dx, 20, innerWidth - 20);
-        const nextCy = clamp(e.clientY - dy, 20, innerHeight - 20);
-        el.style.left = nextCx + 'px';
-        el.style.top = nextCy + 'px';
-      });
-
-      function stopDrag(){
-        dragging = false;
-        el.classList.remove('dragging');
-      }
-      el.addEventListener('pointerup', stopDrag);
-      el.addEventListener('pointercancel', stopDrag);
-
-      layer.appendChild(el);
-      return el;
-    }
-
-    function measurePopupSize() {
-      const probe = document.createElement('div');
-      probe.className = 'popup';
-      probe.style.left = '-9999px';
-      probe.style.top = '-9999px';
-      probe.style.visibility = 'hidden';
-      probe.style.pointerEvents = 'none';
-      probe.innerHTML = `
-        <div class="bar"><span>♡</span><span class="hint">点开查看</span><button class="close">×</button></div>
-        <div class="content">test</div>
-      `;
-      document.body.appendChild(probe);
-      const rect = probe.getBoundingClientRect();
-      probe.remove();
-      return { w: rect.width, h: rect.height };
-    }
-
-    function buildHeart() {
-      buildToken++;
-      const token = buildToken;
-
-      resetScene();
-
-      const messages = generateUniqueMessages(totalPopups, nickname);
-      let msgIndex = 0;
-      const nextText = () => messages[msgIndex++] || `第${msgIndex}句：我爱你`;
-
-      const W = innerWidth;
-      const H = innerHeight;
-
-      const { w: popupW, h: popupH } = measurePopupSize();
-      const margin = 10;
-
-      const lut = getHeartLUT(3200);
-
-      const xStretchBase = isMobile ? 1.42 : 1.18;
-      const yStretchBase = isMobile ? 1.18 : 1.07;
-
-      const effectiveW = popupW * 0.58;
-      const effectiveH = popupH * 0.58;
-
-      const availH = Math.max(120, H - topReserve - bottomReserve);
-      const usableW = Math.max(80, W - 2 * margin - effectiveW);
-      const usableH = Math.max(80, availH - 2 * margin - effectiveH);
-
-      const scale = 0.985 * Math.min(
-        usableW / (lut.width * xStretchBase),
-        usableH / (lut.height * yStretchBase)
-      );
-
-      const centerX = W / 2;
-      const centerY = topReserve + availH / 2 + (isMobile ? 6 : 10);
-
-      const rings = clampInt(Number(params.get('rings') || 1), 1, 5);
-      const ringOffsetsPx = ringOffsetsFromCount(rings);
-      const ringCount = ringOffsetsPx.length;
-
-      const base = Math.floor(heartPopups / ringCount);
-      const rem = heartPopups % ringCount;
-
-      const outlineItems = [];
-      for (let r = 0; r < ringCount; r++) {
-        const count = base + (r < rem ? 1 : 0);
-        const phase = (r / ringCount) * 0.45;
-
-        const pts = sampleHeartByArc(lut, count, phase);
-        const off = ringOffsetsPx[r];
-
-        for (const p of pts) {
-          const yRel = (p.y - lut.midY) / (lut.height / 2);
-
-          const bottomNarrow = clamp(1 + yRel * 0.65, 0.42, 1.06);
-          const topWiden = clamp(1 + yRel * 0.22, 0.92, 1.28);
-
-          const xStretch = xStretchBase * (yRel < 0 ? bottomNarrow : topWiden);
-          const yStretch = yStretchBase * (yRel < 0 ? 1.26 : 1.03);
-
-          const dx = (p.x - lut.midX) * scale * xStretch;
-          const dy = (p.y - lut.midY) * scale * yStretch;
-
-          const d = heartDeriv(p.t);
-          const tx = d.dx * xStretch;
-          const ty = d.dy * yStretch;
-
-          let nx = -ty, ny = tx;
-          const nl = Math.hypot(nx, ny) || 1;
-          nx /= nl; ny /= nl;
-
-          const cx = centerX + dx + nx * off;
-          const cy = centerY - dy - ny * off;
-
-          outlineItems.push({ cx, cy });
-        }
-      }
-
-      const orderIdx = spreadOrder(outlineItems.length);
-
-      const created = [];
-      let order = 0;
-
-      for (const idx of orderIdx) {
-        const { cx, cy } = outlineItems[idx];
-        const text = nextText();
-        const delay = order * appearIntervalMs;
-        const z = 10 + order;
-        order++;
-
-        schedule(token, () => {
-          created.push(makePopup({ cx, cy, text, z, minimized: false }));
-        }, delay);
-      }
-
-      const lastDelay = Math.max(0, (order - 1) * appearIntervalMs);
-
-      function spawnRemainingPopups(startDelayMs, minimized) {
-        const need = Math.max(0, totalPopups - outlineItems.length);
-        const halfW = popupW / 2;
-        const halfH = popupH / 2;
-
-        for (let k = 0; k < need; k++) {
-          schedule(token, () => {
-            const x = rand(halfW + margin, innerWidth - halfW - margin);
-            const y = rand(halfH + margin, innerHeight - halfH - margin);
-            make
+       
